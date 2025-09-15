@@ -4,67 +4,61 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load environment variables
+// Load env vars
 dotenv.config();
 
-// Import routes
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const wishlistRoutes = require('./routes/wishlist');
 
-// Import middleware
-const errorHandler = require('./middleware/errorHandler');
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ===== Middleware =====
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
+// ===== Routes =====
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true,
+    message: 'Server is running!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'Server is running!', timestamp: new Date().toISOString() });
-});
+// ===== Error Handling =====
+app.use(require('./middleware/errorHandler')); // custom errors
+app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
 
-// Error handling middleware
-app.use(errorHandler);
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+// ===== Database & Server =====
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/your-app-name')
   .then(() => {
-    console.log('Connected to MongoDB Atlas');
+    console.log('MongoDB connected successfully');
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
+  .catch(err => {
+    console.error('MongoDB connection error:', err.message);
     process.exit(1);
   });
 
-// Graceful shutdown
+// ===== Graceful Shutdown =====
 process.on('SIGINT', async () => {
   console.log('\nShutting down gracefully...');
   await mongoose.connection.close();
