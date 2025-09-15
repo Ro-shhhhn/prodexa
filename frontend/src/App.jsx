@@ -1,26 +1,31 @@
+// src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import SignupPage from './pages/SignupPage';
-import SigninPage from './pages/SigninPage';
+import { ProductProvider } from './context/ProductContext';
 import Home from './pages/Home';
+import Login from './pages/SigninPage'; // Updated to match your file name
+import Signup from './pages/SignupPage'; // Updated to match your file name
 import ProductDetails from './pages/ProductDetails';
+import NotFound from './pages/NotFound';
 import './App.css';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<Navigate to="/signin" replace />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/signin" element={<SigninPage />} />
-            <Route path="/dashboard" element={<Home />} />
-            <Route path="/product/:productId" element={<ProductDetails />} />
-          </Routes>
-        </div>
-      </Router>
+      <ProductProvider>
+          <Router>
+          <div className="App">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/product/:id" element={<ProductDetails />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </Router>
+      </ProductProvider>
     </AuthProvider>
   );
 }
