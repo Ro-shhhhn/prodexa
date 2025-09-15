@@ -1,5 +1,5 @@
 // src/components/common/Header/SearchBar.jsx
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { debounce } from 'lodash';
 
 const SearchBar = ({ 
@@ -9,19 +9,30 @@ const SearchBar = ({
   size = "md" 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const onSearchRef = useRef(onSearch);
 
-  // Debounced search function
+  // Update ref when onSearch changes
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
+  // Create stable debounced search function
   const debouncedSearch = useCallback(
     debounce((term) => {
-      if (onSearch) {
-        onSearch(term);
+      if (onSearchRef.current) {
+        onSearchRef.current(term);
       }
     }, 300),
-    [onSearch]
+    [] // Empty dependency array - function never changes
   );
 
   useEffect(() => {
     debouncedSearch(searchTerm);
+    
+    // Cleanup function to cancel pending debounced calls
+    return () => {
+      debouncedSearch.cancel();
+    };
   }, [searchTerm, debouncedSearch]);
 
   const handleSubmit = (e) => {

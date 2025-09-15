@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Layout from '../components/common/Layout/Layout';
 import ProductGrid from '../components/Product/ProductGrid';
 import Pagination from '../components/common/UI/Pagination';
@@ -14,6 +14,7 @@ const Home = () => {
   const {
     products,
     loading,
+    initialized,
     filters,
     pagination,
     updateFilters,
@@ -28,21 +29,21 @@ const Home = () => {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddSubCategoryModal, setShowAddSubCategoryModal] = useState(false);
 
-  // Event handlers
-  const handleSearch = (term) => {
+  // Event handlers - wrap in useCallback to prevent infinite re-renders
+  const handleSearch = useCallback((term) => {
     updateFilters({ search: term });
-  };
+  }, [updateFilters]);
 
-  const handleCategoryFilter = (category) => {
+  const handleCategoryFilter = useCallback((category) => {
     updateFilters({ 
       category: category, 
       subcategory: null // Reset subcategory when category changes
     });
-  };
+  }, [updateFilters]);
 
-  const handleSubCategoryFilter = (subCategory) => {
+  const handleSubCategoryFilter = useCallback((subCategory) => {
     updateFilters({ subcategory: subCategory });
-  };
+  }, [updateFilters]);
 
   const handlePageChange = (page) => {
     updatePage(page);
@@ -103,6 +104,20 @@ const Home = () => {
       console.error('Failed to add sub category:', error);
     }
   };
+
+  // Show initial loading screen only on first load
+  if (!initialized && loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading application...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout
@@ -168,8 +183,10 @@ const Home = () => {
       {/* Results Info */}
       <div className="flex justify-between items-center mb-6">
         <div className="text-sm text-gray-600">
-          {loading ? (
+          {!initialized ? (
             'Loading products...'
+          ) : loading ? (
+            'Updating products...'
           ) : (
             `${pagination.total} of ${pagination.total} items`
           )}
@@ -192,7 +209,7 @@ const Home = () => {
       {/* Products Grid */}
       <ProductGrid 
         products={products}
-        loading={loading}
+        loading={loading && !initialized} // Only show loading skeleton on first load
         onAddToWishlist={handleAddToWishlist}
         onViewDetails={handleViewDetails}
         emptyMessage={
@@ -205,7 +222,7 @@ const Home = () => {
       />
 
       {/* Pagination */}
-      {!loading && pagination.totalPages > 1 && (
+      {initialized && !loading && pagination.totalPages > 1 && (
         <div className="mt-8">
           <Pagination
             currentPage={pagination.current}

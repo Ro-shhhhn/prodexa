@@ -1,5 +1,5 @@
 // src/context/ProductContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 
@@ -17,7 +17,8 @@ export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with true for initial load
+  const [initialized, setInitialized] = useState(false); // Track if initial load is complete
   const [filters, setFilters] = useState({
     search: '',
     category: null,
@@ -27,16 +28,20 @@ export const ProductProvider = ({ children }) => {
   });
   const [pagination, setPagination] = useState({
     current: 1,
-    totalPages: 1,
+    totalPages: 0,
     total: 0,
     limit: 10
   });
 
   // Fetch products based on filters
-  const fetchProducts = async (customFilters = {}) => {
+  const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
     try {
-      setLoading(true);
       const filterParams = { ...filters, ...customFilters };
+      
+      // Only set loading for non-initial loads
+      if (initialized && !isInitialLoad) {
+        setLoading(true);
+      }
       
       // Convert category/subcategory objects to IDs
       const params = {
@@ -48,16 +53,38 @@ export const ProductProvider = ({ children }) => {
       const response = await productService.getProducts(params);
       
       if (response.success) {
-        setProducts(response.data || []);
-        setPagination(response.pagination || pagination);
+        // Update both products and pagination atomically
+        const newProducts = response.data || [];
+        const newPagination = response.pagination || {
+          current: 1,
+          totalPages: Math.ceil(newProducts.length / (params.limit || 10)),
+          total: newProducts.length,
+          limit: params.limit || 10
+        };
+        
+        // Batch state updates to prevent flickering
+        setProducts(newProducts);
+        setPagination(newPagination);
       } else {
         throw new Error(response.message);
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      // Keep existing products on error
+      // On error, handle gracefully
+      if (isInitialLoad || !initialized) {
+        setProducts([]);
+        setPagination({
+          current: 1,
+          totalPages: 0,
+          total: 0,
+          limit: 10
+        });
+      }
     } finally {
       setLoading(false);
+      if (isInitialLoad) {
+        setInitialized(true);
+      }
     }
   };
 
@@ -70,6 +97,7 @@ export const ProductProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch categories:', error);
+      setCategories([]);
     }
   };
 
@@ -85,6 +113,7 @@ export const ProductProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch subcategories:', error);
+      setSubcategories([]);
     }
   };
 
@@ -132,25 +161,63 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Update filters
-  const updateFilters = (newFilters) => {
-    const updatedFilters = { ...filters, ...newFilters, page: 1 };
-    setFilters(updatedFilters);
-    fetchProducts(updatedFilters);
-  };
+  const updateFilters = useCallback((newFilters) => {
+    setFilters(currentFilters => {
+      const updatedFilters = { ...currentFilters, ...newFilters, page: 1 };
+      
+      // Prevent unnecessary API calls if filters haven't actually changed
+      if (JSON.stringify(updatedFilters) === JSON.stringify(currentFilters)) {
+        return currentFilters;
+      }
+      
+      // Call fetchProducts in the next tick to avoid stale closure
+      setTimeout(() => {
+        fetchProducts(updatedFilters);
+      }, 0);
+      
+      return updatedFilters;
+    });
+  }, []);
 
   // Update page
-  const updatePage = (page) => {
-    const updatedFilters = { ...filters, page };
-    setFilters(updatedFilters);
-    fetchProducts(updatedFilters);
-  };
+  const updatePage = useCallback((page) => {
+    setFilters(currentFilters => {
+      // Prevent unnecessary API calls if page hasn't changed
+      if (page === currentFilters.page) {
+        return currentFilters;
+      }
+      
+      const updatedFilters = { ...currentFilters, page };
+      
+      // Call fetchProducts in the next tick to avoid stale closure
+      setTimeout(() => {
+        fetchProducts(updatedFilters);
+      }, 0);
+      
+      return updatedFilters;
+    });
+  }, []);
 
   // Initialize data on mount
   useEffect(() => {
-    fetchCategories();
-    fetchSubcategories();
-    fetchProducts();
-  }, []);
+    const initializeData = async () => {
+      try {
+        // Start all initial requests in parallel
+        await Promise.all([
+          fetchCategories(),
+          fetchSubcategories(),
+          fetchProducts({}, true) // Pass true for initial load
+        ]);
+      } catch (error) {
+        console.error('Failed to initialize data:', error);
+      }
+    };
+
+    // Only run once when component mounts
+    if (!initialized) {
+      initializeData();
+    }
+  }, []); // Empty dependency array - only run once on mount
 
   const value = {
     // State
@@ -158,6 +225,7 @@ export const ProductProvider = ({ children }) => {
     categories,
     subcategories,
     loading,
+    initialized,
     filters,
     pagination,
     
