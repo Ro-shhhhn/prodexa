@@ -1,29 +1,104 @@
-import ApiService from "./api";
+// src/services/categoryService.js
+import apiService from './api.js';
 
 class CategoryService {
-  // Fetch all categories
+  // Get all categories
   async getCategories() {
-    return ApiService.get("/categories");
+    try {
+      return await apiService.get('/categories');
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch categories');
+    }
   }
 
-  // Fetch a single category by ID
-  async getCategoryById(id) {
-    return ApiService.get(`/categories/${id}`);
+  // Get single category by ID
+  async getCategoryById(categoryId) {
+    try {
+      return await apiService.get(`/categories/${categoryId}`);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch category');
+    }
   }
 
-  // Create a new category
-  async createCategory(data) {
-    return ApiService.post("/categories", data);
+  // Create new category
+  async createCategory(categoryData) {
+    try {
+      return await apiService.post('/categories', categoryData);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to create category');
+    }
   }
 
-  // Update a category
-  async updateCategory(id, data) {
-    return ApiService.put(`/categories/${id}`, data);
+  // Update category
+  async updateCategory(categoryId, categoryData) {
+    try {
+      return await apiService.put(`/categories/${categoryId}`, categoryData);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to update category');
+    }
   }
 
-  // Delete a category
-  async deleteCategory(id) {
-    return ApiService.delete(`/categories/${id}`);
+  // Delete category
+  async deleteCategory(categoryId) {
+    try {
+      return await apiService.delete(`/categories/${categoryId}`);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to delete category');
+    }
+  }
+
+  // Get subcategories for a specific category
+  async getSubCategories(categoryId) {
+    try {
+      return await apiService.get(`/categories/${categoryId}/subcategories`);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch subcategories');
+    }
+  }
+
+  // Get all subcategories
+  async getAllSubCategories() {
+    try {
+      return await apiService.get('/categories/subcategories/all');
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch all subcategories');
+    }
+  }
+
+  // Create new subcategory
+  async createSubCategory(categoryId, subCategoryData) {
+    try {
+      return await apiService.post(`/categories/${categoryId}/subcategories`, subCategoryData);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to create subcategory');
+    }
+  }
+
+  // Update subcategory
+  async updateSubCategory(categoryId, subCategoryId, subCategoryData) {
+    try {
+      return await apiService.put(`/categories/${categoryId}/subcategories/${subCategoryId}`, subCategoryData);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to update subcategory');
+    }
+  }
+
+  // Delete subcategory
+  async deleteSubCategory(categoryId, subCategoryId) {
+    try {
+      return await apiService.delete(`/categories/${categoryId}/subcategories/${subCategoryId}`);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to delete subcategory');
+    }
+  }
+
+  // Get subcategory by ID
+  async getSubCategoryById(categoryId, subCategoryId) {
+    try {
+      return await apiService.get(`/categories/${categoryId}/subcategories/${subCategoryId}`);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch subcategory');
+    }
   }
 }
 

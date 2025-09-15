@@ -175,7 +175,7 @@ const Home = () => {
             Add category
           </Button>
           <Button 
-            variant="outline" 
+            variant="primary" 
             size="sm"
             onClick={() => setShowAddSubCategoryModal(true)}
           >

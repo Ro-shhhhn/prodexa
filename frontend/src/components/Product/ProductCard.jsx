@@ -1,9 +1,11 @@
 // src/components/Product/ProductCard.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../common/UI/Card';
 import StarRating from '../common/UI/StarRating';
 
 const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
+  const navigate = useNavigate();
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
@@ -26,6 +28,10 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
   };
 
   const handleCardClick = () => {
+    // Navigate to product details page with product ID
+    navigate(`/product/${product._id}`);
+    
+    // Also call the onViewDetails callback if provided (for additional functionality)
     if (onViewDetails) {
       onViewDetails(product);
     }
