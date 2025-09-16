@@ -1,4 +1,4 @@
-// src/context/ProductContext.jsx
+// src/context/ProductContext.jsx - FIXED VERSION
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
@@ -17,8 +17,8 @@ export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [loading, setLoading] = useState(true); // Start with true for initial load
-  const [initialized, setInitialized] = useState(false); // Track if initial load is complete
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     category: null,
@@ -38,12 +38,10 @@ export const ProductProvider = ({ children }) => {
     try {
       const filterParams = { ...filters, ...customFilters };
       
-      // Only set loading for non-initial loads
       if (initialized && !isInitialLoad) {
         setLoading(true);
       }
       
-      // Convert category/subcategory objects to IDs
       const params = {
         ...filterParams,
         category: filterParams.category?._id || filterParams.category,
@@ -53,7 +51,6 @@ export const ProductProvider = ({ children }) => {
       const response = await productService.getProducts(params);
       
       if (response.success) {
-        // Update both products and pagination atomically
         const newProducts = response.data || [];
         const newPagination = response.pagination || {
           current: 1,
@@ -62,7 +59,6 @@ export const ProductProvider = ({ children }) => {
           limit: params.limit || 10
         };
         
-        // Batch state updates to prevent flickering
         setProducts(newProducts);
         setPagination(newPagination);
       } else {
@@ -70,7 +66,6 @@ export const ProductProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      // On error, handle gracefully
       if (isInitialLoad || !initialized) {
         setProducts([]);
         setPagination({
@@ -88,7 +83,6 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Fetch categories
   const fetchCategories = async () => {
     try {
       const response = await categoryService.getCategories();
@@ -101,7 +95,6 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Fetch subcategories
   const fetchSubcategories = async (categoryId = null) => {
     try {
       const response = categoryId 
@@ -117,13 +110,22 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Add new product
+  // FIXED: Add new product - no duplicates
   const addProduct = async (productData) => {
     try {
       const response = await productService.createProduct(productData);
       if (response.success) {
-        // Refresh products to show new product
-        await fetchProducts();
+        // Instead of refreshing all products, just add the new one to the current list
+        // This prevents the duplicate issue
+        setProducts(prevProducts => [response.data, ...prevProducts]);
+        
+        // Update pagination total count
+        setPagination(prev => ({
+          ...prev,
+          total: prev.total + 1,
+          totalPages: Math.ceil((prev.total + 1) / prev.limit)
+        }));
+        
         return response.data;
       }
       throw new Error(response.message);
@@ -132,7 +134,6 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Add new category
   const addCategory = async (categoryData) => {
     try {
       const response = await categoryService.createCategory(categoryData);
@@ -146,10 +147,11 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Add new subcategory
-  const addSubCategory = async (categoryId, subcategoryData) => {
+  // FIXED: Add new subcategory - corrected method signature
+  const addSubCategory = async (subcategoryData) => {
     try {
-      const response = await categoryService.createSubCategory(categoryId, subcategoryData);
+      // The subcategoryData should include the categoryId
+      const response = await categoryService.createSubCategory(subcategoryData.category, subcategoryData);
       if (response.success) {
         setSubcategories(prev => [...prev, response.data]);
         return response.data;
@@ -160,17 +162,14 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Update filters
   const updateFilters = useCallback((newFilters) => {
     setFilters(currentFilters => {
       const updatedFilters = { ...currentFilters, ...newFilters, page: 1 };
       
-      // Prevent unnecessary API calls if filters haven't actually changed
       if (JSON.stringify(updatedFilters) === JSON.stringify(currentFilters)) {
         return currentFilters;
       }
       
-      // Call fetchProducts in the next tick to avoid stale closure
       setTimeout(() => {
         fetchProducts(updatedFilters);
       }, 0);
@@ -179,17 +178,14 @@ export const ProductProvider = ({ children }) => {
     });
   }, []);
 
-  // Update page
   const updatePage = useCallback((page) => {
     setFilters(currentFilters => {
-      // Prevent unnecessary API calls if page hasn't changed
       if (page === currentFilters.page) {
         return currentFilters;
       }
       
       const updatedFilters = { ...currentFilters, page };
       
-      // Call fetchProducts in the next tick to avoid stale closure
       setTimeout(() => {
         fetchProducts(updatedFilters);
       }, 0);
@@ -198,29 +194,25 @@ export const ProductProvider = ({ children }) => {
     });
   }, []);
 
-  // Initialize data on mount
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // Start all initial requests in parallel
         await Promise.all([
           fetchCategories(),
           fetchSubcategories(),
-          fetchProducts({}, true) // Pass true for initial load
+          fetchProducts({}, true)
         ]);
       } catch (error) {
         console.error('Failed to initialize data:', error);
       }
     };
 
-    // Only run once when component mounts
     if (!initialized) {
       initializeData();
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const value = {
-    // State
     products,
     categories,
     subcategories,
@@ -228,8 +220,6 @@ export const ProductProvider = ({ children }) => {
     initialized,
     filters,
     pagination,
-    
-    // Actions
     fetchProducts,
     fetchCategories,
     fetchSubcategories,

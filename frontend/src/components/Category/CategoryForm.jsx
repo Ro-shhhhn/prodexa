@@ -11,6 +11,7 @@ const CategoryForm = ({ onSuccess, onCancel }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,6 +20,7 @@ const CategoryForm = ({ onSuccess, onCancel }) => {
       [name]: value
     }));
     if (error) setError('');
+    if (success) setSuccess('');
   };
 
   const handleSubmit = async (e) => {
@@ -32,11 +34,17 @@ const CategoryForm = ({ onSuccess, onCancel }) => {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
       
       const response = await categoryService.createCategory(formData);
       
       if (response.success) {
-        onSuccess(response.data);
+        setSuccess('Category created successfully!');
+        
+        // Close modal after showing success message briefly
+        setTimeout(() => {
+          onSuccess(response.data);
+        }, 1000);
       } else {
         setError(response.message || 'Failed to create category');
       }
@@ -52,6 +60,12 @@ const CategoryForm = ({ onSuccess, onCancel }) => {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          {success}
         </div>
       )}
       
@@ -97,7 +111,7 @@ const CategoryForm = ({ onSuccess, onCancel }) => {
           variant="primary"
           loading={loading}
         >
-          Add Category
+          {loading ? 'Adding...' : 'Add Category'}
         </Button>
       </div>
     </form>

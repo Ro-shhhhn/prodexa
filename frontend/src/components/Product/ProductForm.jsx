@@ -1,4 +1,4 @@
-// src/components/Product/ProductForm.jsx
+// src/components/Product/ProductForm.jsx - FINAL FIX
 import React, { useState, useEffect } from 'react';
 import Button from '../common/UI/Button';
 import Input from '../common/UI/Input';
@@ -13,14 +13,13 @@ const ProductForm = ({ onSuccess, onCancel }) => {
     description: '',
     category: '',
     subcategory: '',
-    variants: [{ ram: '', price: '', quantity: '' }],
-    images: []
+    variants: [{ ram: '', price: '', quantity: '' }]
   });
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([null, null, null]);
 
   useEffect(() => {
     fetchCategories();
@@ -37,24 +36,17 @@ const ProductForm = ({ onSuccess, onCancel }) => {
 
   const fetchCategories = async () => {
     try {
-      setCategoriesLoading(true);
       const response = await categoryService.getCategories();
-      if (response.success) {
-        setCategories(response.data);
-      }
+      if (response.success) setCategories(response.data);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
-    } finally {
-      setCategoriesLoading(false);
     }
   };
 
   const fetchSubcategories = async (categoryId) => {
     try {
       const response = await categoryService.getSubCategories(categoryId);
-      if (response.success) {
-        setSubcategories(response.data);
-      }
+      if (response.success) setSubcategories(response.data);
     } catch (error) {
       console.error('Failed to fetch subcategories:', error);
     }
@@ -62,20 +54,14 @@ const ProductForm = ({ onSuccess, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (error) setError('');
   };
 
   const handleVariantChange = (index, field, value) => {
     const updatedVariants = [...formData.variants];
     updatedVariants[index][field] = value;
-    setFormData(prev => ({
-      ...prev,
-      variants: updatedVariants
-    }));
+    setFormData(prev => ({ ...prev, variants: updatedVariants }));
     if (error) setError('');
   };
 
@@ -89,32 +75,40 @@ const ProductForm = ({ onSuccess, onCancel }) => {
   const removeVariant = (index) => {
     if (formData.variants.length > 1) {
       const updatedVariants = formData.variants.filter((_, i) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        variants: updatedVariants
-      }));
+      setFormData(prev => ({ ...prev, variants: updatedVariants }));
     }
   };
 
-  const handleImageUpload = (files) => {
-    // For now, we'll store file URLs as placeholders
-    // In a real app, you'd upload to a server first
-    const imageUrls = Array.from(files).map((file, index) => 
-      `https://via.placeholder.com/300x200/f3f4f6/9ca3af?text=Image+${index + 1}`
-    );
-    
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...imageUrls]
-    }));
+  const handleImageSelect = (index, files) => {
+    if (files.length > 0) {
+      const file = files[0];
+      
+      if (!file.type.startsWith('image/')) {
+        setError('Only image files are allowed');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image must be less than 5MB');
+        return;
+      }
+
+      const newFiles = [...selectedFiles];
+      newFiles[index] = {
+        file,
+        preview: URL.createObjectURL(file)
+      };
+      setSelectedFiles(newFiles);
+      setError('');
+    }
   };
 
   const removeImage = (index) => {
-    const updatedImages = formData.images.filter((_, i) => i !== index);
-    setFormData(prev => ({
-      ...prev,
-      images: updatedImages
-    }));
+    const newFiles = [...selectedFiles];
+    if (newFiles[index]) {
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles[index] = null;
+    }
+    setSelectedFiles(newFiles);
   };
 
   const validateForm = () => {
@@ -122,12 +116,14 @@ const ProductForm = ({ onSuccess, onCancel }) => {
     if (!formData.category) return 'Please select a category';
     if (!formData.subcategory) return 'Please select a sub category';
     
-    // Validate variants
+    const validImages = selectedFiles.filter(f => f !== null);
+    if (validImages.length !== 3) return 'Please select exactly 3 images';
+    
     for (let i = 0; i < formData.variants.length; i++) {
       const variant = formData.variants[i];
       if (!variant.ram.trim()) return `RAM is required for variant ${i + 1}`;
       if (!variant.price || parseFloat(variant.price) <= 0) return `Valid price is required for variant ${i + 1}`;
-      if (!variant.quantity || parseInt(variant.quantity) < 0) return `Valid quantity is required for variant ${i + 1}`;
+      if (variant.quantity === '' || parseInt(variant.quantity) < 0) return `Valid quantity is required for variant ${i + 1}`;
     }
     
     return null;
@@ -146,25 +142,34 @@ const ProductForm = ({ onSuccess, onCancel }) => {
       setLoading(true);
       setError('');
       
-      // Convert variant values to proper types
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('subcategory', formData.subcategory);
+      
       const processedVariants = formData.variants.map(variant => ({
         ram: variant.ram.trim(),
         price: parseFloat(variant.price),
         quantity: parseInt(variant.quantity)
       }));
-
-      const productData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        subcategory: formData.subcategory,
-        variants: processedVariants,
-        images: formData.images
-      };
+      formDataToSend.append('variants', JSON.stringify(processedVariants));
       
-      const response = await productService.createProduct(productData);
+      selectedFiles.forEach((fileObj) => {
+        if (fileObj) {
+          formDataToSend.append('images', fileObj.file);
+        }
+      });
+      
+      const response = await productService.createProductWithImages(formDataToSend);
       
       if (response.success) {
+        // Clean up preview URLs
+        selectedFiles.forEach(fileObj => {
+          if (fileObj) URL.revokeObjectURL(fileObj.preview);
+        });
+        
+        // Call success callback - FIXED: Just pass the product data
         onSuccess(response.data);
       } else {
         setError(response.message || 'Failed to create product');
@@ -176,15 +181,16 @@ const ProductForm = ({ onSuccess, onCancel }) => {
     }
   };
 
-  const categoryOptions = categories.map(cat => ({
-    value: cat._id,
-    label: cat.name
-  }));
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach(fileObj => {
+        if (fileObj) URL.revokeObjectURL(fileObj.preview);
+      });
+    };
+  }, []);
 
-  const subcategoryOptions = subcategories.map(sub => ({
-    value: sub._id,
-    label: sub.name
-  }));
+  const categoryOptions = categories.map(cat => ({ value: cat._id, label: cat.name }));
+  const subcategoryOptions = subcategories.map(sub => ({ value: sub._id, label: sub.name }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-96 overflow-y-auto">
@@ -194,11 +200,8 @@ const ProductForm = ({ onSuccess, onCancel }) => {
         </div>
       )}
       
-      {/* Product Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Product Name *
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
         <Input
           type="text"
           name="name"
@@ -209,30 +212,20 @@ const ProductForm = ({ onSuccess, onCancel }) => {
         />
       </div>
 
-      {/* Category */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Category *
-        </label>
-        {categoriesLoading ? (
-          <div className="animate-pulse bg-gray-200 h-10 rounded"></div>
-        ) : (
-          <Select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            options={categoryOptions}
-            placeholder="Select category"
-            required
-          />
-        )}
+        <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+        <Select
+          name="category"
+          value={formData.category}
+          onChange={handleChange}
+          options={categoryOptions}
+          placeholder="Select category"
+          required
+        />
       </div>
 
-      {/* Sub Category */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Sub Category *
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Sub Category *</label>
         <Select
           name="subcategory"
           value={formData.subcategory}
@@ -244,62 +237,41 @@ const ProductForm = ({ onSuccess, onCancel }) => {
         />
       </div>
 
-      {/* Variants */}
       <div>
         <div className="flex justify-between items-center mb-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Product Variants *
-          </label>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={addVariant}
-          >
-            Add Variant
-          </Button>
+          <label className="block text-sm font-medium text-gray-700">Product Variants *</label>
+          <Button type="button" variant="secondary" size="sm" onClick={addVariant}>Add Variant</Button>
         </div>
         
         <div className="space-y-3">
           {formData.variants.map((variant, index) => (
             <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  placeholder="RAM (e.g., 8GB)"
-                  value={variant.ram}
-                  onChange={(e) => handleVariantChange(index, 'ram', e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="Price"
-                  value={variant.price}
-                  onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="Quantity"
-                  value={variant.quantity}
-                  onChange={(e) => handleVariantChange(index, 'quantity', e.target.value)}
-                  min="0"
-                  required
-                />
-              </div>
+              <Input
+                type="text"
+                placeholder="RAM (e.g., 8GB)"
+                value={variant.ram}
+                onChange={(e) => handleVariantChange(index, 'ram', e.target.value)}
+                required
+              />
+              <Input
+                type="number"
+                placeholder="Price"
+                value={variant.price}
+                onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                min="0"
+                step="0.01"
+                required
+              />
+              <Input
+                type="number"
+                placeholder="Quantity"
+                value={variant.quantity}
+                onChange={(e) => handleVariantChange(index, 'quantity', e.target.value)}
+                min="0"
+                required
+              />
               {formData.variants.length > 1 && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  onClick={() => removeVariant(index)}
-                >
+                <Button type="button" variant="danger" size="sm" onClick={() => removeVariant(index)}>
                   Remove
                 </Button>
               )}
@@ -308,11 +280,8 @@ const ProductForm = ({ onSuccess, onCancel }) => {
         </div>
       </div>
 
-      {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
         <textarea
           name="description"
           value={formData.description}
@@ -323,55 +292,55 @@ const ProductForm = ({ onSuccess, onCancel }) => {
         />
       </div>
 
-      {/* Images */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Product Images
-        </label>
-        <FileUpload
-          onFileSelect={handleImageUpload}
-          accept="image/*"
-          multiple
-          className="mb-3"
-        />
-        
-        {formData.images.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {formData.images.map((image, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={image}
-                  alt={`Product ${index + 1}`}
-                  className="w-full h-20 object-cover rounded"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+        <label className="block text-sm font-medium text-gray-700 mb-2">Product Images * (3 required)</label>
+        <div className="grid grid-cols-3 gap-4">
+          {['Main Image', 'Sub Image 1', 'Sub Image 2'].map((label, index) => (
+            <div key={index} className="space-y-2">
+              <div className="text-xs text-gray-600 font-medium">{label}</div>
+              
+              {!selectedFiles[index] ? (
+                <FileUpload
+                  onFileSelect={(files) => handleImageSelect(index, files)}
+                  accept="image/*"
+                  className="w-full"
                 >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-orange-400 transition-colors cursor-pointer">
+                    <div className="text-gray-400 mb-2">
+                      <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </div>
+                    <div className="text-xs text-gray-500">Click to select</div>
+                  </div>
+                </FileUpload>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={selectedFiles[index].preview}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          disabled={loading}
-        >
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          loading={loading}
-        >
-          Add Product
+        <Button type="submit" variant="primary" loading={loading}>
+          {loading ? 'Adding Product...' : 'Add Product'}
         </Button>
       </div>
     </form>

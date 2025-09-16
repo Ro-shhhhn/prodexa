@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// src/pages/Home.jsx - FINAL FIX
 import React, { useState, useCallback } from 'react';
 import Layout from '../components/common/Layout/Layout';
 import ProductGrid from '../components/Product/ProductGrid';
@@ -19,17 +19,25 @@ const Home = () => {
     pagination,
     updateFilters,
     updatePage,
-    addProduct,
-    addCategory,
-    addSubCategory
+    fetchProducts // We'll use direct fetch instead of addProduct
   } = useProduct();
 
   // Modal states
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddSubCategoryModal, setShowAddSubCategoryModal] = useState(false);
+  
+  // Success toast state
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Event handlers - wrap in useCallback to prevent infinite re-renders
+  // Show success toast
+  const showSuccess = (message) => {
+    setSuccessMessage(message);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
+  };
+
   const handleSearch = useCallback((term) => {
     updateFilters({ search: term });
   }, [updateFilters]);
@@ -37,7 +45,7 @@ const Home = () => {
   const handleCategoryFilter = useCallback((category) => {
     updateFilters({ 
       category: category, 
-      subcategory: null // Reset subcategory when category changes
+      subcategory: null
     });
   }, [updateFilters]);
 
@@ -57,7 +65,6 @@ const Home = () => {
   const handleAddToWishlist = async (product) => {
     try {
       console.log('Added to wishlist:', product.name);
-      // TODO: Implement wishlist API call
     } catch (error) {
       console.error('Failed to add to wishlist:', error);
     }
@@ -65,47 +72,36 @@ const Home = () => {
 
   const handleViewDetails = (product) => {
     console.log('View details:', product.name);
-    // TODO: Navigate to product details page
   };
 
   const handleOpenWishlist = () => {
     console.log('Open wishlist');
-    // TODO: Navigate to wishlist page
   };
 
-  // Modal handlers
+  // FIXED: Simplified product success handler
   const handleProductSuccess = async (newProduct) => {
-    try {
-      await addProduct(newProduct);
-      setShowAddProductModal(false);
-      // Show success message
-      console.log('Product added successfully:', newProduct.name);
-    } catch (error) {
-      console.error('Failed to add product:', error);
-    }
+    // Close modal immediately
+    setShowAddProductModal(false);
+    
+    // Show success message
+    showSuccess('Product added successfully!');
+    
+    // Refresh products list
+    setTimeout(() => {
+      fetchProducts();
+    }, 500);
   };
 
   const handleCategorySuccess = async (newCategory) => {
-    try {
-      await addCategory(newCategory);
-      setShowAddCategoryModal(false);
-      console.log('Category added successfully:', newCategory.name);
-    } catch (error) {
-      console.error('Failed to add category:', error);
-    }
+    setShowAddCategoryModal(false);
+    showSuccess('Category added successfully!');
   };
 
   const handleSubCategorySuccess = async (newSubCategory) => {
-    try {
-      await addSubCategory(newSubCategory.category, newSubCategory);
-      setShowAddSubCategoryModal(false);
-      console.log('Sub category added successfully:', newSubCategory.name);
-    } catch (error) {
-      console.error('Failed to add sub category:', error);
-    }
+    setShowAddSubCategoryModal(false);
+    showSuccess('Sub category added successfully!');
   };
 
-  // Show initial loading screen only on first load
   if (!initialized && loading) {
     return (
       <Layout>
@@ -128,6 +124,20 @@ const Home = () => {
       selectedCategory={filters.category}
       selectedSubCategory={filters.subcategory}
     >
+      {/* Success Toast - IMPROVED STYLING */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
@@ -154,7 +164,6 @@ const Home = () => {
           </nav>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex space-x-3">
           <Button 
             variant="primary" 
@@ -180,7 +189,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Results Info */}
       <div className="flex justify-between items-center mb-6">
         <div className="text-sm text-gray-600">
           {!initialized ? (
@@ -206,10 +214,9 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Products Grid */}
       <ProductGrid 
         products={products}
-        loading={loading && !initialized} // Only show loading skeleton on first load
+        loading={loading && !initialized}
         onAddToWishlist={handleAddToWishlist}
         onViewDetails={handleViewDetails}
         emptyMessage={
@@ -221,7 +228,6 @@ const Home = () => {
         }
       />
 
-      {/* Pagination */}
       {initialized && !loading && pagination.totalPages > 1 && (
         <div className="mt-8">
           <Pagination
@@ -270,6 +276,24 @@ const Home = () => {
           onCancel={() => setShowAddSubCategoryModal(false)}
         />
       </Modal>
+
+      {/* Add this CSS for toast animation */}
+      <style jsx>{`
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </Layout>
   );
 };

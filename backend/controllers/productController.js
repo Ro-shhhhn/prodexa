@@ -69,6 +69,7 @@ const getProducts = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Get products error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch products',
@@ -77,13 +78,13 @@ const getProducts = async (req, res) => {
   }
 };
 
-// Create product
+// Create product with image upload
 const createProduct = async (req, res) => {
   try {
-    const { name, description, category, subcategory, variants, images } = req.body;
+    const { name, description, category, subcategory, variants } = req.body;
     
     // Validation
-    if (!name) {
+    if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Product name is required'
@@ -103,11 +104,30 @@ const createProduct = async (req, res) => {
         message: 'Sub category is required'
       });
     }
+
+    // Parse variants if it's a string (from FormData)
+    let parsedVariants;
+    try {
+      parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid variants format'
+      });
+    }
     
-    if (!variants || !Array.isArray(variants) || variants.length === 0) {
+    if (!parsedVariants || !Array.isArray(parsedVariants) || parsedVariants.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'At least one variant is required'
+      });
+    }
+
+    // Validate images - exactly 3 required
+    if (!req.files || req.files.length !== 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Exactly 3 images are required'
       });
     }
     
@@ -132,22 +152,44 @@ const createProduct = async (req, res) => {
     }
     
     // Validate variants
-    for (const variant of variants) {
-      if (!variant.ram || !variant.price || variant.quantity === undefined) {
+    for (const variant of parsedVariants) {
+      if (!variant.ram || !variant.ram.trim()) {
         return res.status(400).json({
           success: false,
-          message: 'Each variant must have RAM, price, and quantity'
+          message: 'RAM is required for each variant'
+        });
+      }
+      if (!variant.price || parseFloat(variant.price) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid price is required for each variant'
+        });
+      }
+      if (variant.quantity === undefined || parseInt(variant.quantity) < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid quantity is required for each variant'
         });
       }
     }
+
+    // Process variants
+    const processedVariants = parsedVariants.map(variant => ({
+      ram: variant.ram.trim(),
+      price: parseFloat(variant.price),
+      quantity: parseInt(variant.quantity)
+    }));
+
+    // Get image URLs from Cloudinary upload
+    const imageUrls = req.files.map(file => file.path);
     
     const product = new Product({
-      name,
-      description,
+      name: name.trim(),
+      description: description ? description.trim() : '',
       category,
       subcategory,
-      variants,
-      images: images || []
+      variants: processedVariants,
+      images: imageUrls
     });
     
     await product.save();
@@ -161,6 +203,7 @@ const createProduct = async (req, res) => {
       data: product
     });
   } catch (error) {
+    console.error('Create product error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create product',
@@ -190,6 +233,7 @@ const getProductById = async (req, res) => {
       data: product
     });
   } catch (error) {
+    console.error('Get product by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product',

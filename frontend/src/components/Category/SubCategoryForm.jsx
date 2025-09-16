@@ -15,6 +15,7 @@ const SubCategoryForm = ({ onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchCategories();
@@ -41,6 +42,7 @@ const SubCategoryForm = ({ onSuccess, onCancel }) => {
       [name]: value
     }));
     if (error) setError('');
+    if (success) setSuccess('');
   };
 
   const handleSubmit = async (e) => {
@@ -59,15 +61,22 @@ const SubCategoryForm = ({ onSuccess, onCancel }) => {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
       
-      const response = await categoryService.createSubCategory(formData.category, {
+      // FIXED: Using the correct service method signature
+      const response = await categoryService.createSubCategory({
         name: formData.name,
         category: formData.category,
         description: formData.description
       });
       
       if (response.success) {
-        onSuccess(response.data);
+        setSuccess('Sub category created successfully!');
+        
+        // Close modal after showing success message briefly
+        setTimeout(() => {
+          onSuccess(response.data);
+        }, 1000);
       } else {
         setError(response.message || 'Failed to create sub category');
       }
@@ -88,6 +97,12 @@ const SubCategoryForm = ({ onSuccess, onCancel }) => {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          {success}
         </div>
       )}
       
@@ -151,7 +166,7 @@ const SubCategoryForm = ({ onSuccess, onCancel }) => {
           variant="primary"
           loading={loading}
         >
-          Add Sub Category
+          {loading ? 'Adding...' : 'Add Sub Category'}
         </Button>
       </div>
     </form>

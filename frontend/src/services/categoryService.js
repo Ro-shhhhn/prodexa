@@ -65,10 +65,10 @@ class CategoryService {
     }
   }
 
-  // Create new subcategory
-  async createSubCategory(categoryId, subCategoryData) {
+  // FIXED: Create new subcategory - now matches backend route
+  async createSubCategory(subCategoryData) {
     try {
-      return await apiService.post(`/categories/${categoryId}/subcategories`, subCategoryData);
+      return await apiService.post('/categories/subcategories', subCategoryData);
     } catch (error) {
       throw new Error(error.message || 'Failed to create subcategory');
     }
