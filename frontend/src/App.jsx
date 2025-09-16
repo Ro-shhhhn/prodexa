@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx - FIXED ROUTE PARAMETER NAMING
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -14,12 +14,13 @@ function App() {
   return (
     <AuthProvider>
       <ProductProvider>
-          <Router>
+        <Router>
           <div className="App">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              {/* FIXED: Changed from :productId to :id to match ProductDetails.jsx */}
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

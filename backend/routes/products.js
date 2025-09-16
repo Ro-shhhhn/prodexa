@@ -1,16 +1,21 @@
-// backend/routes/products.js
+// backend/routes/products.js - FIXED VERSION
 const express = require('express');
 const router = express.Router();
-const { uploadProductImages } = require('../config/cloudinary');
+const { 
+  uploadProductImages, 
+  uploadProductImagesForUpdate 
+} = require('../config/cloudinary');
 const {
   getProducts,
   createProduct,
-  getProductById
+  getProductById,
+  updateProduct
 } = require('../controllers/productController');
 
 // Product routes
 router.get('/', getProducts);
-router.post('/', uploadProductImages, createProduct); // Added image upload middleware
+router.post('/', uploadProductImages, createProduct); // Use strict 3-image requirement for creation
 router.get('/:id', getProductById);
+router.put('/:id', uploadProductImagesForUpdate, updateProduct); // Use flexible image handling for updates
 
 module.exports = router;

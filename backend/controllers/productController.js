@@ -1,9 +1,180 @@
-// backend/controllers/productController.js
+// backend/controllers/productController.js - FIXED VERSION
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const SubCategory = require('../models/SubCategory');
+const mongoose = require('mongoose');
 
-// Get all products with filters and pagination
+// Update product - FIXED with proper image handling
+const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate that ID is provided and valid
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID is required and cannot be undefined'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
+    
+    const { name, description, category, subcategory, variants, existingImages } = req.body;
+    
+    // Find existing product
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Basic field validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product name is required'
+      });
+    }
+
+    // Parse variants and existing images
+    let parsedVariants;
+    try {
+      parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid variants format'
+      });
+    }
+
+    let parsedExistingImages = [];
+    try {
+      parsedExistingImages = existingImages ? 
+        (typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages) : 
+        [];
+    } catch (err) {
+      console.warn('Error parsing existing images:', err);
+      parsedExistingImages = [];
+    }
+
+    // Handle images - FIXED LOGIC
+    let finalImages = [];
+    
+    // Get new uploaded images
+    const newImageUrls = req.files ? req.files.map(file => file.path) : [];
+    
+    // Combine new images with existing ones
+    // Priority: new uploads first, then existing images to fill gaps
+    for (let i = 0; i < 3; i++) {
+      if (newImageUrls[i]) {
+        // New image uploaded for this position
+        finalImages[i] = newImageUrls[i];
+      } else if (product.images[i]) {
+        // Keep existing image for this position
+        finalImages[i] = product.images[i];
+      }
+    }
+
+    // Add any additional existing images that should be kept
+    parsedExistingImages.forEach(existingImg => {
+      if (!finalImages.includes(existingImg) && finalImages.length < 3) {
+        finalImages.push(existingImg);
+      }
+    });
+
+    // Ensure we have valid images (at least the existing ones)
+    if (finalImages.length === 0 && product.images.length > 0) {
+      finalImages = product.images;
+    }
+
+    // Validate that we have at least one image
+    if (finalImages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one image is required'
+      });
+    }
+
+    // Validate variants
+    if (parsedVariants && Array.isArray(parsedVariants)) {
+      for (const variant of parsedVariants) {
+        if (!variant.ram || !variant.ram.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: 'RAM is required for each variant'
+          });
+        }
+        if (!variant.price || parseFloat(variant.price) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Valid price is required for each variant'
+          });
+        }
+        if (variant.quantity === undefined || parseInt(variant.quantity) < 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Valid quantity is required for each variant'
+          });
+        }
+      }
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: name.trim(),
+      description: description?.trim() || product.description,
+      category: category || product.category,
+      subcategory: subcategory || product.subcategory,
+      images: finalImages
+    };
+
+    // Only update variants if provided
+    if (parsedVariants && Array.isArray(parsedVariants)) {
+      updateData.variants = parsedVariants.map(variant => ({
+        ram: variant.ram.trim(),
+        price: parseFloat(variant.price),
+        quantity: parseInt(variant.quantity)
+      }));
+    }
+
+    // Update product
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true }
+    ).populate(['category', 'subcategory']);
+    
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: updatedProduct
+    });
+  } catch (error) {
+    console.error('Update product error:', error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product',
+      error: error.message
+    });
+  }
+};
+
+// Keep all other existing functions unchanged
 const getProducts = async (req, res) => {
   try {
     const {
@@ -21,22 +192,18 @@ const getProducts = async (req, res) => {
     const skip = (page - 1) * limit;
     const query = { isActive: true };
     
-    // Search filter
     if (search) {
       query.$text = { $search: search };
     }
     
-    // Category filter
     if (category) {
       query.category = category;
     }
     
-    // Subcategory filter
     if (subcategory) {
       query.subcategory = subcategory;
     }
     
-    // Price filter
     if (minPrice || maxPrice) {
       query['variants.price'] = {};
       if (minPrice) query['variants.price'].$gte = parseFloat(minPrice);
@@ -78,12 +245,10 @@ const getProducts = async (req, res) => {
   }
 };
 
-// Create product with image upload
 const createProduct = async (req, res) => {
   try {
     const { name, description, category, subcategory, variants } = req.body;
     
-    // Validation
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
@@ -105,7 +270,6 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // Parse variants if it's a string (from FormData)
     let parsedVariants;
     try {
       parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
@@ -123,7 +287,6 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // Validate images - exactly 3 required
     if (!req.files || req.files.length !== 3) {
       return res.status(400).json({
         success: false,
@@ -131,7 +294,6 @@ const createProduct = async (req, res) => {
       });
     }
     
-    // Check if category and subcategory exist
     const [categoryExists, subcategoryExists] = await Promise.all([
       Category.findById(category),
       SubCategory.findById(subcategory)
@@ -151,7 +313,6 @@ const createProduct = async (req, res) => {
       });
     }
     
-    // Validate variants
     for (const variant of parsedVariants) {
       if (!variant.ram || !variant.ram.trim()) {
         return res.status(400).json({
@@ -173,14 +334,12 @@ const createProduct = async (req, res) => {
       }
     }
 
-    // Process variants
     const processedVariants = parsedVariants.map(variant => ({
       ram: variant.ram.trim(),
       price: parseFloat(variant.price),
       quantity: parseInt(variant.quantity)
     }));
 
-    // Get image URLs from Cloudinary upload
     const imageUrls = req.files.map(file => file.path);
     
     const product = new Product({
@@ -193,8 +352,6 @@ const createProduct = async (req, res) => {
     });
     
     await product.save();
-    
-    // Populate for response
     await product.populate(['category', 'subcategory']);
     
     res.status(201).json({
@@ -212,10 +369,23 @@ const createProduct = async (req, res) => {
   }
 };
 
-// Get single product
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID is required and cannot be undefined'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
     
     const product = await Product.findOne({ _id: id, isActive: true })
       .populate('category', 'name')
@@ -224,7 +394,7 @@ const getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Product not found or inactive'
       });
     }
     
@@ -234,6 +404,14 @@ const getProductById = async (req, res) => {
     });
   } catch (error) {
     console.error('Get product by ID error:', error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product',
@@ -245,5 +423,6 @@ const getProductById = async (req, res) => {
 module.exports = {
   getProducts,
   createProduct,
-  getProductById
+  getProductById,
+  updateProduct  
 };

@@ -33,16 +33,20 @@ class ProductService {
   // Get single product by ID
   async getProductById(productId) {
     try {
+      // Validate productId before making the request
+      if (!productId || productId === 'undefined' || productId === 'null') {
+        throw new Error('Product ID is required and cannot be undefined');
+      }
+      
       return await apiService.get(`/products/${productId}`);
     } catch (error) {
       throw new Error(error.message || 'Failed to fetch product');
     }
   }
 
-  // NEW: Create product with images (FormData for Cloudinary upload)
+  // Create product with images (FormData for Cloudinary upload)
   async createProductWithImages(formData) {
     try {
-      // Use fetch directly for FormData uploads
       const token = localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products`, {
         method: 'POST',
@@ -79,8 +83,32 @@ class ProductService {
     }
   }
 
-  // Update product
-  async updateProduct(productId, productData) {
+  // Update product with images (FormData for new images)
+  async updateProduct(productId, formData) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          // Don't set Content-Type for FormData - browser will set it with boundary
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update product');
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw new Error(error.message || 'Failed to update product');
+    }
+  }
+
+  // Legacy JSON update method (for backward compatibility when no images involved)
+  async updateProductJSON(productId, productData) {
     try {
       return await apiService.put(`/products/${productId}`, productData);
     } catch (error) {

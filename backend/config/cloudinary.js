@@ -1,4 +1,4 @@
-// backend/config/cloudinary.js
+// backend/config/cloudinary.js - FIXED VERSION
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
@@ -14,7 +14,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'products', // Folder name in Cloudinary
+    folder: 'products',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
     transformation: [
       { width: 800, height: 600, crop: 'limit', quality: 'auto' },
@@ -30,7 +30,6 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Check file type
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -39,7 +38,7 @@ const upload = multer({
   },
 });
 
-// Middleware to handle exactly 3 images
+// Middleware for creating new products (requires exactly 3 images)
 const uploadProductImages = (req, res, next) => {
   const uploadMultiple = upload.array('images', 3);
   
@@ -51,11 +50,36 @@ const uploadProductImages = (req, res, next) => {
       });
     }
     
-    // Check if exactly 3 images were uploaded
-    if (!req.files || req.files.length !== 3) {
+    // For create operation, require exactly 3 images
+    if (req.method === 'POST' && (!req.files || req.files.length !== 3)) {
       return res.status(400).json({
         success: false,
         message: 'Exactly 3 images are required'
+      });
+    }
+    
+    next();
+  });
+};
+
+// FIXED: New middleware for updating products (allows 0 to 3 images)
+const uploadProductImagesForUpdate = (req, res, next) => {
+  const uploadMultiple = upload.array('images', 3);
+  
+  uploadMultiple(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Image upload failed'
+      });
+    }
+    
+    // For update operation, allow 0 to 3 images
+    // If no new images are uploaded, existing images will be preserved
+    if (req.files && req.files.length > 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 3 images are allowed'
       });
     }
     
@@ -77,6 +101,7 @@ const deleteImage = async (imageUrl) => {
 module.exports = {
   cloudinary,
   upload,
-  uploadProductImages,
+  uploadProductImages, // For creating products (requires exactly 3)
+  uploadProductImagesForUpdate, // For updating products (allows 0-3)
   deleteImage
 };
