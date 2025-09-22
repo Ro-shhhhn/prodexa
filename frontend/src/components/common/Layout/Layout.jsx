@@ -7,7 +7,6 @@ const Layout = ({
   children, 
   showSidebar = true, 
   onSearch,
-  onOpenWishlist,
   onCategoryFilter,
   onSubCategoryFilter,
   selectedCategory,
@@ -18,7 +17,6 @@ const Layout = ({
       {/* Navbar */}
       <Navbar 
         onSearch={onSearch}
-        onOpenWishlist={onOpenWishlist}
       />
       
       {/* Main Content Area */}

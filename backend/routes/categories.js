@@ -1,24 +1,21 @@
-
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const {
   getCategories,
   createCategory,
   getSubCategories,
   getAllSubCategories,
   createSubCategory,
-    getAllCategoriesWithSubcategories // Add this import
-
+  getAllCategoriesWithSubcategories
 } = require('../controllers/categoryController');
 
-// Category routes
-router.get('/', getCategories);
-router.post('/', createCategory);
-
-// Subcategory routes
-router.get('/subcategories/all', getAllSubCategories);
-router.get('/:categoryId/subcategories', getSubCategories);
-router.post('/subcategories', createSubCategory);
-router.get('/with-subcategories', getAllCategoriesWithSubcategories); // Add this route
+// ALL routes require authentication
+router.get('/', auth, getCategories);
+router.get('/subcategories/all', auth, getAllSubCategories);
+router.get('/:categoryId/subcategories', auth, getSubCategories);
+router.get('/with-subcategories', auth, getAllCategoriesWithSubcategories);
+router.post('/', auth, createCategory);
+router.post('/subcategories', auth, createSubCategory);
 
 module.exports = router;

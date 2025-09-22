@@ -23,6 +23,14 @@ class ApiService {
 
       const data = await response.json();
 
+      // Handle 401 - redirect to login
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+
       if (!response.ok) {
         throw new Error(data.message || 'Request failed');
       }

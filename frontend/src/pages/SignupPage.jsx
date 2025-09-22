@@ -1,12 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import SignupForm from '../components/Auth/SignupForm';
 import Button from '../components/common/UI/Button';
+import authService from '../services/authService';
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [error, setError] = useState('');
 
-  const handleSignupSuccess = () => {
+  const handleSignupSuccess = async (userData) => {
+    setError(''); // Clear previous errors
+    
+    try {
+      const response = await authService.register(userData);
+      
+      if (response.success) {
+        // Auto-login after successful registration
+        login(response.user, response.token);
+        navigate('/'); // Redirect to home
+      } else {
+        setError(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      setError(error.message || 'Registration failed. Please try again.');
+      console.error('Registration failed:', error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    const formData = new FormData(e.target);
+    const userData = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      password: formData.get('password')
+    };
+    
+    await handleSignupSuccess(userData);
+  };
+
+  // Alternative: If you want to redirect to login page instead of auto-login
+  const handleSignupSuccessWithRedirect = () => {
     // After successful signup, redirect to signin page
     navigate('/login', { 
       state: { message: 'Account created successfully! Please sign in.' }
@@ -53,7 +91,13 @@ const SignupPage = () => {
             <p className="text-gray-600">Fill in your details to get started</p>
           </div>
 
-          <SignupForm onSuccess={handleSignupSuccess} />
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <SignupForm onSuccess={handleSignupSuccess} onSubmit={handleSubmit} />
           
           <div className="text-center mt-6">
             <p className="text-gray-600">
