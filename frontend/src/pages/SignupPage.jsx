@@ -8,7 +8,7 @@ const SignupPage = () => {
 
   const handleSignupSuccess = () => {
     // After successful signup, redirect to signin page
-    navigate('/signin', { 
+    navigate('/login', { 
       state: { message: 'Account created successfully! Please sign in.' }
     });
   };
@@ -35,7 +35,7 @@ const SignupPage = () => {
             To keep connected with us please<br />
             login with your personal info
           </p>
-          <Link to="/signin">
+          <Link to="/login">
             <Button variant="secondary">
               SIGN IN
             </Button>
@@ -58,7 +58,7 @@ const SignupPage = () => {
           <div className="text-center mt-6">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <Link to="/signin" className="text-orange-500 hover:text-orange-600 font-semibold">
+              <Link to="/login" className="text-orange-500 hover:text-orange-600 font-semibold">
                 Sign In
               </Link>
             </p>

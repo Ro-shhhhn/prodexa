@@ -1,37 +1,49 @@
 // src/components/Product/ProductCard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 import Card from '../common/UI/Card';
 import StarRating from '../common/UI/StarRating';
 
-const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
+const ProductCard = ({ product, onViewDetails }) => {
   const navigate = useNavigate();
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { user } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   
-  // Get the first variant or default values
+  useEffect(() => {
+    setIsWishlisted(isInWishlist(product._id));
+  }, [product._id, isInWishlist]);
+
   const firstVariant = product.variants && product.variants.length > 0 ? product.variants[0] : null;
   const price = firstVariant ? firstVariant.price : product.price || 529.99;
   const ram = firstVariant ? firstVariant.ram : product.ram || '8GB';
 
   const handleWishlistClick = async (e) => {
     e.stopPropagation();
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     try {
-      setIsInWishlist(!isInWishlist);
-      if (onAddToWishlist) {
-        await onAddToWishlist(product);
+      if (isWishlisted) {
+        const success = await removeFromWishlist(product._id);
+        if (success) setIsWishlisted(false);
+      } else {
+        const success = await addToWishlist(product);
+        if (success) setIsWishlisted(true);
       }
     } catch (error) {
       console.error('Failed to update wishlist:', error);
-      setIsInWishlist(!isInWishlist); // Revert on error
     }
   };
 
   const handleCardClick = () => {
-    // Navigate to product details page with product ID
     navigate(`/product/${product._id}`);
-    
-    // Also call the onViewDetails callback if provided (for additional functionality)
     if (onViewDetails) {
       onViewDetails(product);
     }
@@ -47,14 +59,14 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
       <button
         onClick={handleWishlistClick}
         className={`absolute top-3 right-3 z-10 p-2 rounded-full transition-all duration-200 ${
-          isInWishlist 
+          isWishlisted 
             ? 'bg-red-100 text-red-600 hover:bg-red-200' 
             : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500'
         }`}
       >
         <svg 
           className="h-5 w-5" 
-          fill={isInWishlist ? "currentColor" : "none"}
+          fill={isWishlisted ? "currentColor" : "none"}
           viewBox="0 0 24 24" 
           stroke="currentColor"
         >
@@ -67,6 +79,7 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
         </svg>
       </button>
 
+      {/* Rest of the component remains the same */}
       {/* Product Image */}
       <div className="aspect-w-16 aspect-h-12 mb-4">
         <div className="relative bg-gray-100 rounded-lg overflow-hidden">
@@ -99,7 +112,6 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
           {product.name || 'HP AMD Ryzen 3'}
         </h3>
         
-        {/* Price */}
         <div className="flex items-baseline space-x-2">
           <span className="text-lg font-semibold text-gray-900">
             ${price.toFixed(2)}
@@ -111,14 +123,12 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
           )}
         </div>
 
-        {/* RAM Info if available */}
         {ram && (
           <div className="text-sm text-gray-600">
             RAM: {ram}
           </div>
         )}
 
-        {/* Rating */}
         <div className="flex items-center space-x-2">
           <StarRating rating={product.rating || 0} size="w-4 h-4" />
           <span className="text-sm text-gray-500">
@@ -126,7 +136,6 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
           </span>
         </div>
 
-        {/* Stock Status */}
         <div className="flex items-center justify-between">
           <span className={`text-sm ${
             (firstVariant?.quantity || product.quantity || 0) > 0 
@@ -146,7 +155,6 @@ const ProductCard = ({ product, onAddToWishlist, onViewDetails }) => {
         </div>
       </div>
 
-      {/* Hover Effect Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 rounded-lg"></div>
     </Card>
   );

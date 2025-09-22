@@ -1,4 +1,4 @@
-// src/pages/ProductDetails.jsx - Enhanced with Better Error Handling
+// src/pages/ProductDetails.jsx - Enhanced with Better Error Handling and Wishlist
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/common/Layout/Layout';
@@ -6,6 +6,8 @@ import Button from '../components/common/UI/Button';
 import Modal from '../components/common/UI/Modal';
 import productService from '../services/productService';
 import EditProductForm from '../components/Product/EditProductForm';
+import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -19,10 +21,22 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  // Wishlist and Auth
+  const { user } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
   useEffect(() => {
     console.log('ProductDetails - ID from URL:', id); // Debug log
     fetchProduct();
   }, [id]);
+
+  // Check wishlist status when product loads
+  useEffect(() => {
+    if (product) {
+      setIsWishlisted(isInWishlist(product._id));
+    }
+  }, [product, isInWishlist]);
 
   const fetchProduct = async () => {
     try {
@@ -66,6 +80,26 @@ const ProductDetails = () => {
   const handleEditSuccess = (updatedProduct) => {
     setProduct(updatedProduct);
     setShowEditModal(false);
+  };
+
+  // Wishlist toggle handler
+  const handleWishlistToggle = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      if (isWishlisted) {
+        const success = await removeFromWishlist(product._id);
+        if (success) setIsWishlisted(false);
+      } else {
+        const success = await addToWishlist(product);
+        if (success) setIsWishlisted(true);
+      }
+    } catch (error) {
+      console.error('Failed to update wishlist:', error);
+    }
   };
 
   if (loading) {
@@ -281,6 +315,31 @@ const ProductDetails = () => {
             >
               Buy it now
             </Button>
+
+            {/* Wishlist Button */}
+            <button
+              onClick={handleWishlistToggle}
+              className={`p-3 rounded-full border transition-colors ${
+                isWishlisted 
+                  ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                  : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+              title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <svg 
+                className="h-6 w-6" 
+                fill={isWishlisted ? "currentColor" : "none"}
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                />
+              </svg>
+            </button>
           </div>
 
           {/* Product Description */}
