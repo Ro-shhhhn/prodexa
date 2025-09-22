@@ -154,11 +154,48 @@ const createSubCategory = async (req, res) => {
   }
 };
 
+const getAllCategoriesWithSubcategories = async (req, res) => {
+  try {
+    // Get all categories
+    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
+    
+    // Get all subcategories and populate category info
+    const subcategories = await SubCategory.find({ isActive: true })
+      .populate('category', 'name')
+      .sort({ name: 1 });
+    
+    // Group subcategories by category
+    const categoriesWithSubcategories = categories.map(category => {
+      const categorySubcategories = subcategories.filter(
+        sub => sub.category._id.toString() === category._id.toString()
+      );
+      
+      return {
+        ...category.toObject(),
+        subcategories: categorySubcategories
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: categoriesWithSubcategories
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch categories with subcategories',
+      error: error.message
+    });
+  }
+};
+
+// Export it
 module.exports = {
   getCategories,
   createCategory,
   getSubCategories,
   getAllSubCategories,
-  createSubCategory
+  createSubCategory,
+  getAllCategoriesWithSubcategories // Add this
 };
 

@@ -100,6 +100,15 @@ class CategoryService {
       throw new Error(error.message || 'Failed to fetch subcategory');
     }
   }
+
+  // Get all categories with their subcategories
+  async getAllCategories() {
+    try {
+      return await apiService.get('/categories/with-subcategories');
+    } catch (error) {
+      throw new Error(error.message || 'Failed to fetch all categories');
+    }
+  }
 }
 
 export default new CategoryService();

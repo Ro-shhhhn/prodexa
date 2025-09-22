@@ -210,6 +210,9 @@ const getProducts = async (req, res) => {
       if (maxPrice) query['variants.price'].$lte = parseFloat(maxPrice);
     }
     
+    // Log for debugging
+    console.log('Product query:', query);
+    
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
     

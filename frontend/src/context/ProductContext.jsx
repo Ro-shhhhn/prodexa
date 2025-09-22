@@ -34,54 +34,57 @@ export const ProductProvider = ({ children }) => {
   });
 
   // Fetch products based on filters
-  const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
-    try {
-      const filterParams = { ...filters, ...customFilters };
-      
-      if (initialized && !isInitialLoad) {
-        setLoading(true);
-      }
-      
-      const params = {
-        ...filterParams,
-        category: filterParams.category?._id || filterParams.category,
-        subcategory: filterParams.subcategory?._id || filterParams.subcategory
+ const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
+  try {
+    const filterParams = { ...filters, ...customFilters };
+    
+    if (initialized && !isInitialLoad) {
+      setLoading(true);
+    }
+    
+    const params = {
+      ...filterParams,
+      category: filterParams.category?._id || filterParams.category,
+      subcategory: filterParams.subcategory?._id || filterParams.subcategory
+    };
+
+    // Log for debugging
+    console.log('Fetching products with params:', params);
+    
+    const response = await productService.getProducts(params);
+    
+    if (response.success) {
+      const newProducts = response.data || [];
+      const newPagination = response.pagination || {
+        current: 1,
+        totalPages: Math.ceil(newProducts.length / (params.limit || 10)),
+        total: newProducts.length,
+        limit: params.limit || 10
       };
       
-      const response = await productService.getProducts(params);
-      
-      if (response.success) {
-        const newProducts = response.data || [];
-        const newPagination = response.pagination || {
-          current: 1,
-          totalPages: Math.ceil(newProducts.length / (params.limit || 10)),
-          total: newProducts.length,
-          limit: params.limit || 10
-        };
-        
-        setProducts(newProducts);
-        setPagination(newPagination);
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-      if (isInitialLoad || !initialized) {
-        setProducts([]);
-        setPagination({
-          current: 1,
-          totalPages: 0,
-          total: 0,
-          limit: 10
-        });
-      }
-    } finally {
-      setLoading(false);
-      if (isInitialLoad) {
-        setInitialized(true);
-      }
+      setProducts(newProducts);
+      setPagination(newPagination);
+    } else {
+      throw new Error(response.message);
     }
-  };
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    if (isInitialLoad || !initialized) {
+      setProducts([]);
+      setPagination({
+        current: 1,
+        totalPages: 0,
+        total: 0,
+        limit: 10
+      });
+    }
+  } finally {
+    setLoading(false);
+    if (isInitialLoad) {
+      setInitialized(true);
+    }
+  }
+};
 
   const fetchCategories = async () => {
     try {

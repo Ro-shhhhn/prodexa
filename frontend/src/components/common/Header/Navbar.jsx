@@ -27,7 +27,7 @@ const Navbar = ({ onSearch }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-gray-900">ProductStore</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Prodexa</h1>
           </div>
 
           {/* Search Bar */}
