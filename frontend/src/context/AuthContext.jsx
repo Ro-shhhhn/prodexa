@@ -1,4 +1,6 @@
+// src/context/AuthContext.jsx - FIXED VERSION
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthContext = createContext();
 
@@ -14,14 +16,26 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Only check auth once on mount
+    if (!authChecked) {
+      const storedUser = localStorage.getItem('user');
+      if (token && storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          // Invalid user data, clear it
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          setToken(null);
+        }
+      }
+      setAuthChecked(true);
+      setLoading(false);
     }
-    setLoading(false);
-  }, [token]);
+  }, [token, authChecked]);
 
   const login = (userData, userToken) => {
     setUser(userData);
@@ -42,7 +56,8 @@ export const AuthProvider = ({ children }) => {
     token,
     login,
     logout,
-    loading
+    loading,
+    isAuthenticated: !!token
   };
 
   return (

@@ -1,4 +1,5 @@
-import React from 'react';
+// src/App.jsx - FIXED VERSION
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
@@ -12,25 +13,18 @@ import NotFound from './pages/NotFound';
 import WishlistModal from './components/Wishlist/WishlistModal';
 import './App.css';
 
-function App() {
+// Create a wrapper component for authenticated app content
+const AuthenticatedApp = () => {
   return (
-    <AuthProvider>
-      <Router>
+    <WishlistProvider>
+      <ProductProvider>
         <Routes>
-          {/* Public Routes - Only Login and Signup */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected Routes - Everything else */}
+          {/* Protected Routes */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <WishlistProvider>
-                  <ProductProvider>
-                    <Home />
-                  </ProductProvider>
-                </WishlistProvider>
+                <Home />
               </ProtectedRoute>
             }
           />
@@ -38,11 +32,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <WishlistProvider>
-                  <ProductProvider>
-                    <Home />
-                  </ProductProvider>
-                </WishlistProvider>
+                <Home />
               </ProtectedRoute>
             }
           />
@@ -50,23 +40,38 @@ function App() {
             path="/product/:id"
             element={
               <ProtectedRoute>
-                <WishlistProvider>
-                  <ProductProvider>
-                    <ProductDetails />
-                  </ProductProvider>
-                </WishlistProvider>
+                <ProductDetails />
               </ProtectedRoute>
             }
           />
+        </Routes>
+        
+        {/* Wishlist Modal - Now inside WishlistProvider */}
+        <WishlistModal />
+      </ProductProvider>
+    </WishlistProvider>
+  );
+};
+
+function App() {
+  useEffect(() => {
+    document.title = 'Prodexa - Product Management';
+  }, []);
+
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes - No providers needed */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* All protected routes wrapped with providers */}
+          <Route path="/*" element={<AuthenticatedApp />} />
           
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-        
-        {/* Global Wishlist Modal - Only for authenticated users */}
-        <WishlistProvider>
-          <WishlistModal />
-        </WishlistProvider>
       </Router>
     </AuthProvider>
   );

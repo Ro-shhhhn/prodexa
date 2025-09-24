@@ -20,6 +20,7 @@ const ProductDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
 
   // Wishlist and Auth
   const { user } = useAuth();
@@ -63,23 +64,30 @@ const ProductDetails = () => {
     }
   };
 
-  const handleVariantSelect = (variant) => {
-    setSelectedVariant(variant);
-    setQuantity(1);
-  };
+ // FIXED CODE
+const handleVariantSelect = (variant) => {
+  setSelectedVariant(variant);
+  // Only set quantity to 1 if the variant has stock
+  setQuantity(variant.quantity > 0 ? 1 : 0);
+};
 
-  const handleQuantityChange = (change) => {
-    const newQuantity = quantity + change;
-    const maxQuantity = selectedVariant?.quantity || 1;
-    
-    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
-      setQuantity(newQuantity);
-    }
-  };
+ // FIXED CODE
+const handleQuantityChange = (change) => {
+  const newQuantity = quantity + change;
+  const maxQuantity = selectedVariant?.quantity ?? 0;  // Use ?? instead of ||
+  
+  if (newQuantity >= 1 && newQuantity <= maxQuantity) {
+    setQuantity(newQuantity);
+  }
+};
 
   const handleEditSuccess = (updatedProduct) => {
     setProduct(updatedProduct);
     setShowEditModal(false);
+  };
+
+  const handleBuyNow = () => {
+    setShowComingSoonModal(true);
   };
 
   // Wishlist toggle handler
@@ -100,6 +108,55 @@ const ProductDetails = () => {
     } catch (error) {
       console.error('Failed to update wishlist:', error);
     }
+  };
+
+  // Coming Soon Modal Component
+  const ComingSoonModal = ({ isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center transform transition-all">
+          {/* Animated Icon */}
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full mx-auto flex items-center justify-center">
+              <svg className="w-10 h-10 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Content */}
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            Coming Soon!
+          </h3>
+          <p className="text-gray-600 mb-2">
+            We're working hard to bring you the best shopping experience.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            The checkout feature will be available soon. Stay tuned!
+          </p>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={handleWishlistToggle}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-6 rounded-full font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105"
+            >
+              {isWishlisted ? 'Already in Wishlist ❤️' : 'Add to Wishlist ❤️'}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors"
+            >
+              Continue Shopping
+            </button>
+          </div>
+
+         
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -154,10 +211,9 @@ const ProductDetails = () => {
       </Layout>
     );
   }
-
-  const currentPrice = selectedVariant?.price || product.variants[0]?.price;
-  const maxQuantity = selectedVariant?.quantity || 1;
-  const inStock = maxQuantity > 0;
+const currentPrice = selectedVariant?.price ?? product.variants[0]?.price;
+const maxQuantity = selectedVariant?.quantity ?? 0;  // Use ?? instead of ||
+const inStock = maxQuantity > 0;
 
   return (
     <Layout showSidebar={false}>
@@ -246,12 +302,18 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Stock Alert */}
-          {inStock && maxQuantity <= 10 && (
-            <div className="text-orange-600 text-sm">
-              Hurry up! only {maxQuantity} product left in stock!
-            </div>
-          )}
+        {/* Stock Alert */}
+{inStock ? (
+  maxQuantity <= 10 && (
+    <div className="text-orange-600 text-sm">
+      Hurry up! only {maxQuantity} product{maxQuantity > 1 ? 's' : ''} left in stock!
+    </div>
+  )
+) : (
+  <div className="text-red-600 text-sm font-medium">
+    This product is currently out of stock
+  </div>
+)}
 
           {/* RAM Variants */}
           <div>
@@ -310,8 +372,9 @@ const ProductDetails = () => {
             </Button>
             
             <Button
+              onClick={handleBuyNow}
               disabled={!inStock}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-full disabled:opacity-50"
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-full disabled:opacity-50 transition-all duration-200 transform hover:scale-105"
             >
               Buy it now
             </Button>
@@ -367,6 +430,12 @@ const ProductDetails = () => {
           onCancel={() => setShowEditModal(false)}
         />
       </Modal>
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal 
+        isOpen={showComingSoonModal}
+        onClose={() => setShowComingSoonModal(false)}
+      />
     </Layout>
   );
 };

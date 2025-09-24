@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - FINAL FIX
+// src/pages/Home.jsx
 import React, { useState, useCallback } from 'react';
 import Layout from '../components/common/Layout/Layout';
 import ProductGrid from '../components/Product/ProductGrid';
@@ -19,7 +19,7 @@ const Home = () => {
     pagination,
     updateFilters,
     updatePage,
-    fetchProducts // We'll use direct fetch instead of addProduct
+    fetchProducts
   } = useProduct();
 
   // Modal states
@@ -45,17 +45,18 @@ const Home = () => {
   const handleCategoryFilter = useCallback((category) => {
     updateFilters({ 
       category: category, 
-      subcategory: null
+      subcategories: [] // Reset subcategories when category changes
     });
   }, [updateFilters]);
 
-  const handleSubCategoryFilter = useCallback((subCategory) => {
-    updateFilters({ subcategory: subCategory });
+  // Updated to handle multiple subcategories
+  const handleSubCategoryFilter = useCallback((subCategories) => {
+    updateFilters({ subcategories: subCategories });
   }, [updateFilters]);
 
   const handlePageChange = (page) => {
     updatePage(page);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleItemsPerPageChange = (newLimit) => {
@@ -78,12 +79,8 @@ const Home = () => {
     console.log('Open wishlist');
   };
 
-  // FIXED: Simplified product success handler
   const handleProductSuccess = async (newProduct) => {
-    // Close modal immediately
     setShowAddProductModal(false);
-    
-    // Show success message
     showSuccess('Product added successfully!');
     
     // Refresh products list
@@ -95,11 +92,19 @@ const Home = () => {
   const handleCategorySuccess = async (newCategory) => {
     setShowAddCategoryModal(false);
     showSuccess('Category added successfully!');
+    // Optionally refresh categories
+    setTimeout(() => {
+      fetchProducts();
+    }, 500);
   };
 
   const handleSubCategorySuccess = async (newSubCategory) => {
     setShowAddSubCategoryModal(false);
     showSuccess('Sub category added successfully!');
+    // Optionally refresh subcategories
+    setTimeout(() => {
+      fetchProducts();
+    }, 500);
   };
 
   if (!initialized && loading) {
@@ -115,6 +120,22 @@ const Home = () => {
     );
   }
 
+  // Get display title based on filters
+  const getDisplayTitle = () => {
+    if (filters.search) {
+      return `Search results for "${filters.search}"`;
+    }
+    if (filters.category) {
+      let title = filters.category.name;
+      if (filters.subcategories && filters.subcategories.length > 0) {
+        const subNames = filters.subcategories.map(sub => sub.name).join(', ');
+        title += ` - ${subNames}`;
+      }
+      return title;
+    }
+    return 'All Products';
+  };
+
   return (
     <Layout
       onSearch={handleSearch}
@@ -122,11 +143,11 @@ const Home = () => {
       onCategoryFilter={handleCategoryFilter}
       onSubCategoryFilter={handleSubCategoryFilter}
       selectedCategory={filters.category}
-      selectedSubCategory={filters.subcategory}
+      selectedSubCategories={filters.subcategories}
     >
-      {/* Success Toast - IMPROVED STYLING */}
+      {/* Success Toast */}
       {showSuccessToast && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+        <div className="fixed top-20 right-4 z-50 animate-slide-in">
           <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
             <div className="flex-shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,30 +159,13 @@ const Home = () => {
         </div>
       )}
 
-      {/* Header Section */}
+      {/* Header Section - Removed breadcrumb from here */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {filters.category 
-              ? `${filters.category.name}${filters.subcategory ? ` - ${filters.subcategory.name}` : ''}` 
-              : 'All Products'
-            }
+            {getDisplayTitle()}
           </h1>
-          <nav className="flex text-sm text-gray-500">
-            <span>Home</span>
-            {filters.category && (
-              <>
-                <span className="mx-2">/</span>
-                <span>{filters.category.name}</span>
-              </>
-            )}
-            {filters.subcategory && (
-              <>
-                <span className="mx-2">/</span>
-                <span>{filters.subcategory.name}</span>
-              </>
-            )}
-          </nav>
+          {/* Breadcrumb moved to Sidebar */}
         </div>
 
         <div className="flex space-x-3">
@@ -169,6 +173,7 @@ const Home = () => {
             variant="primary" 
             size="sm"
             onClick={() => setShowAddCategoryModal(true)}
+            className="shadow-sm"
           >
             Add category
           </Button>
@@ -176,6 +181,7 @@ const Home = () => {
             variant="primary" 
             size="sm"
             onClick={() => setShowAddSubCategoryModal(true)}
+            className="shadow-sm"
           >
             Add sub category
           </Button>
@@ -183,37 +189,43 @@ const Home = () => {
             variant="primary" 
             size="sm"
             onClick={() => setShowAddProductModal(true)}
+            className="shadow-sm"
           >
             Add product
           </Button>
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* Results Info Bar */}
+      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm">
         <div className="text-sm text-gray-600">
           {!initialized ? (
-            'Loading products...'
+            <span className="animate-pulse">Loading products...</span>
           ) : loading ? (
-            'Updating products...'
+            <span className="animate-pulse">Updating products...</span>
           ) : (
-            `${pagination.total} of ${pagination.total} items`
+            <span className="font-medium">
+              Showing {products.length} of {pagination.total} products
+            </span>
           )}
         </div>
         
         <div className="flex items-center space-x-4">
-          <span className="text-sm text-gray-600">Show:</span>
+          <span className="text-sm text-gray-600">Items per page:</span>
           <select 
             value={filters.limit}
             onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-            className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
-            <option value={10}>10 rows</option>
-            <option value={20}>20 rows</option>
-            <option value={50}>50 rows</option>
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
           </select>
         </div>
       </div>
 
+      {/* Product Grid */}
       <ProductGrid 
         products={products}
         loading={loading && !initialized}
@@ -223,13 +235,14 @@ const Home = () => {
           filters.search 
             ? `No products found for "${filters.search}"` 
             : filters.category 
-            ? `No products found in ${filters.category.name}${filters.subcategory ? ` - ${filters.subcategory.name}` : ''}` 
-            : 'No products available'
+            ? `No products found in ${filters.category.name}${filters.subcategories?.length > 0 ? ` - ${filters.subcategories.map(s => s.name).join(', ')}` : ''}` 
+            : 'No products available. Start by adding a product!'
         }
       />
 
+      {/* Pagination */}
       {initialized && !loading && pagination.totalPages > 1 && (
-        <div className="mt-8">
+        <div className="mt-8 flex justify-center">
           <Pagination
             currentPage={pagination.current}
             totalPages={pagination.totalPages}
@@ -277,7 +290,7 @@ const Home = () => {
         />
       </Modal>
 
-      {/* Add this CSS for toast animation */}
+      {/* Animation styles */}
       <style jsx>{`
         .animate-slide-in {
           animation: slideIn 0.3s ease-out;

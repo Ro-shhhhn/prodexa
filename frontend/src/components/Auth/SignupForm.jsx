@@ -1,10 +1,11 @@
+// C:\prodexa\frontend\src\components\Auth\SignupForm.jsx
 import React, { useState } from 'react';
 import { User, Mail, Lock } from 'lucide-react';
-import Input from '../common/UI/Input'; // Fixed case
+import Input from '../common/UI/Input';
 import Button from '../common/UI/Button';
 import authService from '../../services/authService';
 
-const SignupForm = ({ onSuccess }) => {
+const SignupForm = ({ onSuccess, setError }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -59,12 +60,21 @@ const SignupForm = ({ onSuccess }) => {
     if (!validateForm()) return;
 
     setLoading(true);
+    setError && setError(''); // Clear parent error
+    
     try {
       const response = await authService.register(formData);
-      // Don't auto-login after signup, just call success
-      onSuccess?.();
+      
+      if (response.success) {
+        onSuccess?.(response.user, response.token);
+      } else {
+        setErrors({ submit: response.message || 'Registration failed' });
+        setError && setError(response.message || 'Registration failed');
+      }
     } catch (error) {
-      setErrors({ submit: error.message });
+      const errorMessage = error.message || 'Registration failed. Please try again.';
+      setErrors({ submit: errorMessage });
+      setError && setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,6 +90,7 @@ const SignupForm = ({ onSuccess }) => {
         onChange={handleChange}
         icon={User}
         error={errors.name}
+        required
       />
 
       <Input
@@ -90,6 +101,7 @@ const SignupForm = ({ onSuccess }) => {
         onChange={handleChange}
         icon={Mail}
         error={errors.email}
+        required
       />
 
       <Input
@@ -100,6 +112,7 @@ const SignupForm = ({ onSuccess }) => {
         onChange={handleChange}
         icon={Lock}
         error={errors.password}
+        required
       />
 
       {errors.submit && (
@@ -108,7 +121,7 @@ const SignupForm = ({ onSuccess }) => {
         </div>
       )}
 
-      <Button type="submit" loading={loading}>
+      <Button type="submit" loading={loading} disabled={loading}>
         SIGN UP
       </Button>
     </form>

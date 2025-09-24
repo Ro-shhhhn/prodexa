@@ -19,13 +19,13 @@ export const ProductProvider = ({ children }) => {
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
-  const [filters, setFilters] = useState({
-    search: '',
-    category: null,
-    subcategory: null,
-    page: 1,
-    limit: 10
-  });
+ const [filters, setFilters] = useState({
+  search: '',
+  category: null,
+  subcategories: [], // Changed from subcategory to subcategories array
+  page: 1,
+  limit: 10
+});
   const [pagination, setPagination] = useState({
     current: 1,
     totalPages: 0,
@@ -34,7 +34,10 @@ export const ProductProvider = ({ children }) => {
   });
 
   // Fetch products based on filters
- const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
+// Update the fetchProducts function to handle multiple subcategories
+// In ProductContext.jsx - Update the fetchProducts function
+// In ProductContext.jsx - Update the fetchProducts function
+const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
   try {
     const filterParams = { ...filters, ...customFilters };
     
@@ -42,13 +45,25 @@ export const ProductProvider = ({ children }) => {
       setLoading(true);
     }
     
+    // Build the params object
     const params = {
-      ...filterParams,
-      category: filterParams.category?._id || filterParams.category,
-      subcategory: filterParams.subcategory?._id || filterParams.subcategory
+      page: filterParams.page || 1,
+      limit: filterParams.limit || 10,
+      search: filterParams.search || '',
+      category: filterParams.category?._id || filterParams.category || '',
+      // Handle multiple subcategories - join IDs with comma
+      subcategories: Array.isArray(filterParams.subcategories) 
+        ? filterParams.subcategories.map(sub => sub._id || sub).filter(Boolean).join(',')
+        : ''
     };
 
-    // Log for debugging
+    // Remove empty parameters
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key];
+      }
+    });
+
     console.log('Fetching products with params:', params);
     
     const response = await productService.getProducts(params);
@@ -85,7 +100,6 @@ export const ProductProvider = ({ children }) => {
     }
   }
 };
-
   const fetchCategories = async () => {
     try {
       const response = await categoryService.getCategories();

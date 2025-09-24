@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+// C:\prodexa\frontend\src\pages\SigninPage.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoginForm from '../components/Auth/LoginForm';
 import Button from '../components/common/UI/Button';
-import authService from '../services/authService';
 
 const SigninPage = () => {
   const navigate = useNavigate();
@@ -11,36 +11,17 @@ const SigninPage = () => {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const message = location.state?.message;
-
-  const handleLogin = async (credentials) => {
-    setError(''); // Clear previous errors
+useEffect(() => {
+    document.title = 'Sign In - Prodexa';
     
-    try {
-      const response = await authService.login(credentials);
-      
-      if (response.success) {
-        login(response.user, response.token);
-        navigate('/'); // Redirect to home after successful login
-      } else {
-        setError(response.message || 'Login failed');
-      }
-    } catch (error) {
-      setError(error.message || 'Login failed. Please try again.');
-      console.error('Login failed:', error);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    const formData = new FormData(e.target);
-    const credentials = {
-      email: formData.get('email'),
-      password: formData.get('password')
+    // Cleanup on unmount
+    return () => {
+      document.title = 'Prodexa - Product Management';
     };
-    
-    await handleLogin(credentials);
+  }, []);
+  const handleLoginSuccess = (userData, token) => {
+    login(userData, token);
+    navigate('/'); // Redirect to home after successful login
   };
 
   return (
@@ -95,7 +76,7 @@ const SigninPage = () => {
             </div>
           )}
 
-          <LoginForm onSuccess={handleLogin} onSubmit={handleSubmit} />
+          <LoginForm onSuccess={handleLoginSuccess} setError={setError} />
           
           <div className="text-center mt-6">
             <p className="text-gray-600">

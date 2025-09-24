@@ -1,19 +1,17 @@
+// C:\prodexa\frontend\src\components\Auth\LoginForm.jsx
 import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
-import Input from "../common/UI/Input"; // Fixed case
+import Input from "../common/UI/Input";
 import Button from '../common/UI/Button';
 import authService from '../../services/authService';
-import { useAuth } from '../../context/AuthContext';
 
-const LoginForm = ({ onSuccess }) => {
+const LoginForm = ({ onSuccess, setError }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,12 +51,21 @@ const LoginForm = ({ onSuccess }) => {
     if (!validateForm()) return;
 
     setLoading(true);
+    setError && setError(''); // Clear parent error
+    
     try {
       const response = await authService.login(formData);
-      login(response.user, response.token);
-      onSuccess?.();
+      
+      if (response.success) {
+        onSuccess?.(response.user, response.token);
+      } else {
+        setErrors({ submit: response.message || 'Login failed' });
+        setError && setError(response.message || 'Login failed');
+      }
     } catch (error) {
-      setErrors({ submit: error.message });
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      setErrors({ submit: errorMessage });
+      setError && setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,6 +81,7 @@ const LoginForm = ({ onSuccess }) => {
         onChange={handleChange}
         icon={Mail}
         error={errors.email}
+        required
       />
 
       <Input
@@ -84,6 +92,7 @@ const LoginForm = ({ onSuccess }) => {
         onChange={handleChange}
         icon={Lock}
         error={errors.password}
+        required
       />
 
       {errors.submit && (
@@ -92,7 +101,7 @@ const LoginForm = ({ onSuccess }) => {
         </div>
       )}
 
-      <Button type="submit" loading={loading}>
+      <Button type="submit" loading={loading} disabled={loading}>
         SIGN IN
       </Button>
     </form>

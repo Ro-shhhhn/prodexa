@@ -10,31 +10,29 @@ const Layout = ({
   onCategoryFilter,
   onSubCategoryFilter,
   selectedCategory,
-  selectedSubCategory
+  selectedSubCategories
 }) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <Navbar 
-        onSearch={onSearch}
-      />
+      {/* Fixed Navbar at top */}
+      <Navbar onSearch={onSearch} />
       
-      {/* Main Content Area */}
-      <div className="flex">
-        {/* Sidebar */}
+      {/* Main Content Area - Fixed for proper scrolling */}
+      <div className="pt-16 flex">
+        {/* Fixed Sidebar */}
         {showSidebar && (
-          <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r border-gray-200">
+          <div className="w-64 fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 overflow-y-auto z-20">
             <Sidebar
               onCategoryFilter={onCategoryFilter}
               onSubCategoryFilter={onSubCategoryFilter}
               selectedCategory={selectedCategory}
-              selectedSubCategory={selectedSubCategory}
+              selectedSubCategories={selectedSubCategories}
             />
           </div>
         )}
         
-        {/* Main Content */}
-        <div className={`flex-1 ${showSidebar ? 'ml-64' : ''}`}>
+        {/* Main Content - Fixed to allow full page scroll */}
+        <div className={`flex-1 ${showSidebar ? 'ml-64' : ''} min-h-[calc(100vh-4rem)]`}>
           <main className="p-6">
             {children}
           </main>

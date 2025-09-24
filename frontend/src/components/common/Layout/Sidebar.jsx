@@ -2,14 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import categoryService from '../../../services/categoryService';
 
-const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, selectedSubCategory }) => {
+const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, selectedSubCategories = [] }) => {
   const [categories, setCategories] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [selectedSubs, setSelectedSubs] = useState(new Set());
 
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    // Sync with parent's selected subcategories
+    if (selectedSubCategories && Array.isArray(selectedSubCategories)) {
+      setSelectedSubs(new Set(selectedSubCategories.map(sub => sub._id)));
+    }
+  }, [selectedSubCategories]);
 
   const fetchCategories = async () => {
     try {
@@ -69,20 +77,41 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
     }
   };
 
-  const handleSubCategoryClick = (subCategory) => {
+  const handleSubCategoryToggle = (subCategory) => {
+    const newSelected = new Set(selectedSubs);
+    
+    if (newSelected.has(subCategory._id)) {
+      newSelected.delete(subCategory._id);
+    } else {
+      newSelected.add(subCategory._id);
+    }
+    
+    setSelectedSubs(newSelected);
+    
+    // Pass array of selected subcategories to parent
     if (onSubCategoryFilter) {
-      onSubCategoryFilter(subCategory);
+      const selectedSubCategoriesArray = Array.from(newSelected).map(id => {
+        // Find the full subcategory object
+        for (let cat of categories) {
+          const sub = cat.subcategories?.find(s => s._id === id);
+          if (sub) return sub;
+        }
+        return null;
+      }).filter(Boolean);
+      
+      onSubCategoryFilter(selectedSubCategoriesArray);
     }
   };
 
   const clearFilters = () => {
     if (onCategoryFilter) onCategoryFilter(null);
-    if (onSubCategoryFilter) onSubCategoryFilter(null);
+    if (onSubCategoryFilter) onSubCategoryFilter([]);
+    setSelectedSubs(new Set());
   };
 
   if (loading) {
     return (
-      <div className="w-64 bg-white shadow-sm h-full p-4">
+      <div className="w-full h-full p-4">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded mb-4"></div>
           <div className="space-y-2">
@@ -95,17 +124,48 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
     );
   }
 
+  // Get selected subcategory names for breadcrumb
+  const getSelectedSubNames = () => {
+    const names = [];
+    selectedSubs.forEach(subId => {
+      for (let cat of categories) {
+        const sub = cat.subcategories?.find(s => s._id === subId);
+        if (sub) names.push(sub.name);
+      }
+    });
+    return names;
+  };
+
   return (
-    <div className="w-64 bg-white shadow-sm h-full">
+    <div className="w-full h-full">
       <div className="p-4">
+        {/* Breadcrumb - Moved from Homepage */}
+        <nav className="flex flex-wrap items-center text-sm text-gray-500 mb-4 pb-3 border-b">
+          <span className="font-medium">Home</span>
+          {selectedCategory && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="font-medium text-gray-700">{selectedCategory.name}</span>
+            </>
+          )}
+          {selectedSubs.size > 0 && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="text-xs text-gray-600">
+                {getSelectedSubNames().join(', ')}
+              </span>
+            </>
+          )}
+        </nav>
+
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Categories</h3>
-          {(selectedCategory || selectedSubCategory) && (
+          {(selectedCategory || selectedSubs.size > 0) && (
             <button
               onClick={clearFilters}
-              className="text-sm text-orange-600 hover:text-orange-700"
+              className="text-sm text-orange-600 hover:text-orange-700 font-medium"
             >
-              Clear
+              Clear all
             </button>
           )}
         </div>
@@ -114,7 +174,7 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
           <button
             onClick={() => clearFilters()}
             className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              !selectedCategory 
+              !selectedCategory && selectedSubs.size === 0
                 ? 'bg-orange-50 text-orange-700 border border-orange-200' 
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
@@ -136,39 +196,27 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
                   {category.name}
                 </button>
                 
-                {category.subcategories && category.subcategories.length > 0 && (
-                  <button
-                    onClick={() => toggleCategory(category._id)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <svg 
-                      className={`h-4 w-4 transform transition-transform ${
-                        expandedCategories.has(category._id) ? 'rotate-90' : ''
-                      }`} 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20"
-                    >
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                )}
+                
               </div>
 
-              {/* Subcategories */}
+              {/* Subcategories with checkboxes */}
               {expandedCategories.has(category._id) && category.subcategories && (
                 <div className="ml-4 space-y-1">
                   {category.subcategories.map((subCategory) => (
-                    <button
+                    <label
                       key={subCategory._id}
-                      onClick={() => handleSubCategoryClick(subCategory)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        selectedSubCategory?._id === subCategory._id
-                          ? 'bg-orange-50 text-orange-700 border border-orange-200'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
+                      className="flex items-center px-3 py-2 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      {subCategory.name}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={selectedSubs.has(subCategory._id)}
+                        onChange={() => handleSubCategoryToggle(subCategory)}
+                        className="custom-checkbox"
+                      />
+                      <span className="ml-3 text-sm text-gray-600">
+                        {subCategory.name}
+                      </span>
+                    </label>
                   ))}
                 </div>
               )}
@@ -176,6 +224,43 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
           ))}
         </div>
       </div>
+
+      {/* Custom checkbox styles - Updated with grey background and white tick */}
+      <style jsx>{`
+        .custom-checkbox {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border: 2px solid #d1d5db;
+          border-radius: 3px;
+          background-color: white;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s ease;
+        }
+
+        .custom-checkbox:checked {
+          background-color: #6b7280;
+          border-color: #6b7280;
+        }
+
+        .custom-checkbox:checked::after {
+          content: '✓';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: white;
+          font-size: 14px;
+          font-weight: bold;
+          line-height: 1;
+        }
+
+        .custom-checkbox:hover:not(:checked) {
+          border-color: #9ca3af;
+          background-color: #f9fafb;
+        }
+      `}</style>
     </div>
   );
 };

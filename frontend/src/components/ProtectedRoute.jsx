@@ -1,7 +1,8 @@
+// src/components/ProtectedRoute.jsx - FIXED VERSION
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children }) => {  // Accept children prop
   const { token, loading } = useAuth();
   
   if (loading) {
@@ -19,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  return children;
+  return children;  // Render children instead of <Outlet />
 };
 
 export default ProtectedRoute;

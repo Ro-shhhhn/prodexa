@@ -2,11 +2,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { debounce } from 'lodash';
 
-const SearchBar = ({ 
-  placeholder = "Search any things", 
-  onSearch, 
+const SearchBar = ({
+  placeholder = "Search any things",
+  onSearch,
   className = "",
-  size = "md" 
+  size = "md"
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const onSearchRef = useRef(onSearch);
@@ -42,21 +42,36 @@ const SearchBar = ({
     }
   };
 
+  const handleClear = useCallback(() => {
+    setSearchTerm('');
+    // Immediately trigger search with empty term
+    if (onSearch) {
+      onSearch('');
+    }
+  }, [onSearch]);
+
   const sizeClasses = {
     sm: 'h-8 text-sm',
     md: 'h-10 text-base',
     lg: 'h-12 text-lg'
   };
 
+  const iconSizes = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6'
+  };
+
   return (
-    <form onSubmit={handleSubmit} className={`relative ${className}`}>
-      <div className="relative">
+    <form onSubmit={handleSubmit} className="relative flex">
+      <div className="relative flex-1">
+        {/* Search Icon */}
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <svg 
-            className="h-5 w-5 text-gray-400" 
+            className={`${iconSizes[size]} text-gray-400`} 
             fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
           >
             <path 
               strokeLinecap="round" 
@@ -66,33 +81,62 @@ const SearchBar = ({
             />
           </svg>
         </div>
+
+        {/* Input Field */}
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={`
-            block w-full pl-10 pr-20 border border-gray-300 rounded-l-md
+            block w-full pl-10 pr-10 border border-gray-300 rounded-l-md
             focus:ring-orange-500 focus:border-orange-500 
             placeholder-gray-500 bg-white
+            transition-colors duration-200
             ${sizeClasses[size]}
             ${className}
           `}
           placeholder={placeholder}
+          aria-label="Search input"
         />
-        <div className="absolute inset-y-0 right-0">
+
+        {/* Clear Button */}
+        {searchTerm && (
           <button
-            type="submit"
-            className={`
-              px-6 bg-orange-500 hover:bg-orange-600 
-              text-white font-medium rounded-r-md
-              transition-colors duration-200
-              ${sizeClasses[size]}
-            `}
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors duration-200"
+            aria-label="Clear search"
           >
-            Search
+            <svg 
+              className={`${iconSizes[size]} text-gray-400 hover:text-gray-600`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M6 18L18 6M6 6l12 12" 
+              />
+            </svg>
           </button>
-        </div>
+        )}
       </div>
+
+      {/* Search Button */}
+      <button
+        type="submit"
+        className={`
+          px-4 bg-orange-500 text-white rounded-r-md border border-orange-500
+          hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2
+          transition-colors duration-200
+          ${sizeClasses[size]}
+        `}
+        aria-label="Submit search"
+      >
+        Search
+      </button>
     </form>
   );
 };
