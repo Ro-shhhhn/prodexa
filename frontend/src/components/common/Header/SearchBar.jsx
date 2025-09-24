@@ -125,18 +125,36 @@ const SearchBar = ({
       </div>
 
       {/* Search Button */}
-      <button
-        type="submit"
-        className={`
-          px-4 bg-orange-500 text-white rounded-r-md border border-orange-500
-          hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2
-          transition-colors duration-200
-          ${sizeClasses[size]}
-        `}
-        aria-label="Submit search"
-      >
-        Search
-      </button>
+    <button
+  type="submit"
+  className={`
+    px-4 text-white rounded-r-full border focus:outline-none focus:ring-2 focus:ring-offset-2
+    transition-colors duration-200
+    ${sizeClasses[size]}
+  `}
+  style={{
+    backgroundColor: '#eda415',
+    borderColor: '#eda415',
+    focusRingColor: '#eda415'
+  }}
+  onMouseEnter={(e) => {
+    e.target.style.backgroundColor = '#d4940f';
+    e.target.style.borderColor = '#d4940f';
+  }}
+  onMouseLeave={(e) => {
+    e.target.style.backgroundColor = '#eda415';
+    e.target.style.borderColor = '#eda415';
+  }}
+  onFocus={(e) => {
+    e.target.style.boxShadow = '0 0 0 2px rgba(237, 164, 21, 0.5)';
+  }}
+  onBlur={(e) => {
+    e.target.style.boxShadow = 'none';
+  }}
+  aria-label="Submit search"
+>
+  Search
+</button>
     </form>
   );
 };

@@ -314,14 +314,7 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
                 required
               />
               {formData.variants.length > 1 && (
-                <Button 
-                  type="button" 
-                  variant="danger" 
-                  size="sm" 
-                  onClick={() => removeVariant(index)}
-                >
-                  Remove
-                </Button>
+               
               )}
             </div>
           ))}

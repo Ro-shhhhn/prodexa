@@ -28,7 +28,7 @@ const ProductDetails = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
-    console.log('ProductDetails - ID from URL:', id); // Debug log
+    console.log('ProductDetails - ID from URL:', id);
     fetchProduct();
   }, [id]);
 
@@ -44,11 +44,11 @@ const ProductDetails = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching product with ID:', id); // Debug log
+      console.log('Fetching product with ID:', id);
       
       const response = await productService.getProductById(id);
       
-      console.log('Product fetch response:', response); // Debug log
+      console.log('Product fetch response:', response);
       
       if (response.success) {
         setProduct(response.data);
@@ -64,22 +64,20 @@ const ProductDetails = () => {
     }
   };
 
- // FIXED CODE
-const handleVariantSelect = (variant) => {
-  setSelectedVariant(variant);
-  // Only set quantity to 1 if the variant has stock
-  setQuantity(variant.quantity > 0 ? 1 : 0);
-};
+  const handleVariantSelect = (variant) => {
+    setSelectedVariant(variant);
+    // Only set quantity to 1 if the variant has stock
+    setQuantity(variant.quantity > 0 ? 1 : 0);
+  };
 
- // FIXED CODE
-const handleQuantityChange = (change) => {
-  const newQuantity = quantity + change;
-  const maxQuantity = selectedVariant?.quantity ?? 0;  // Use ?? instead of ||
-  
-  if (newQuantity >= 1 && newQuantity <= maxQuantity) {
-    setQuantity(newQuantity);
-  }
-};
+  const handleQuantityChange = (change) => {
+    const newQuantity = quantity + change;
+    const maxQuantity = selectedVariant?.quantity ?? 0;
+    
+    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
+      setQuantity(newQuantity);
+    }
+  };
 
   const handleEditSuccess = (updatedProduct) => {
     setProduct(updatedProduct);
@@ -152,8 +150,6 @@ const handleQuantityChange = (change) => {
               Continue Shopping
             </button>
           </div>
-
-         
         </div>
       </div>
     );
@@ -211,9 +207,10 @@ const handleQuantityChange = (change) => {
       </Layout>
     );
   }
-const currentPrice = selectedVariant?.price ?? product.variants[0]?.price;
-const maxQuantity = selectedVariant?.quantity ?? 0;  // Use ?? instead of ||
-const inStock = maxQuantity > 0;
+
+  const currentPrice = selectedVariant?.price ?? product.variants[0]?.price;
+  const maxQuantity = selectedVariant?.quantity ?? 0;
+  const inStock = maxQuantity > 0;
 
   return (
     <Layout showSidebar={false}>
@@ -230,7 +227,7 @@ const inStock = maxQuantity > 0;
         {/* Left Side - Images */}
         <div className="space-y-4">
           {/* Main Image */}
-          <div className="bg-gray-100 rounded-2xl p-8 aspect-square">
+          <div className="bg-white rounded-2xl p-8 aspect-square">
             <img
               src={product.images?.[selectedImageIndex] || product.images?.[0]}
               alt={product.name}
@@ -270,52 +267,39 @@ const inStock = maxQuantity > 0;
 
         {/* Right Side - Product Info */}
         <div className="space-y-6">
+          {/* Product Title - Using dynamic product name */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {product.name}
+            <h1 className="text-3xl font-bold text-blue-900 mb-4">
+              {product.name || 'HP AMD Ryzen 3'}
             </h1>
             <div className="flex items-baseline space-x-3 mb-4">
               <span className="text-3xl font-bold text-gray-900">
                 ${currentPrice?.toFixed(2)}
               </span>
             </div>
-            <p className="text-sm text-gray-500">Product ID: {product._id}</p>
           </div>
 
-          {/* Category & Subcategory */}
-          <div className="text-sm text-gray-600">
-            <span>Category: </span>
-            <span className="font-medium">{product.category?.name || 'Unknown'}</span>
-            <span className="mx-2">|</span>
-            <span>Subcategory: </span>
-            <span className="font-medium">{product.subcategory?.name || 'Unknown'}</span>
-          </div>
-
-          {/* Availability */}
-          <div className="flex items-center space-x-2">
-            <span className="text-gray-600">Availability:</span>
+          {/* Availability Section - Updated to match Figma */}
+          <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`font-medium ${inStock ? 'text-green-600' : 'text-red-600'}`}>
-                {inStock ? 'In stock' : 'Out of stock'}
-              </span>
+              <span className="text-gray-600">Availability:</span>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${inStock ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`font-medium ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+                  {inStock ? 'In stock' : 'Out of stock'}
+                </span>
+              </div>
             </div>
+
+            {/* Updated Hurry Message to match Figma design */}
+            {inStock && maxQuantity <= 50 && (
+              <div className="text-gray-600 text-sm">
+                Hurry up! only {maxQuantity} product left in stock!
+              </div>
+            )}
           </div>
 
-        {/* Stock Alert */}
-{inStock ? (
-  maxQuantity <= 10 && (
-    <div className="text-orange-600 text-sm">
-      Hurry up! only {maxQuantity} product{maxQuantity > 1 ? 's' : ''} left in stock!
-    </div>
-  )
-) : (
-  <div className="text-red-600 text-sm font-medium">
-    This product is currently out of stock
-  </div>
-)}
-
-          {/* RAM Variants */}
+          {/* RAM Variants - Updated styling to match Figma */}
           <div>
             <label className="block text-gray-700 font-medium mb-3">Ram:</label>
             <div className="flex space-x-3">
@@ -323,63 +307,58 @@ const inStock = maxQuantity > 0;
                 <button
                   key={variant._id}
                   onClick={() => handleVariantSelect(variant)}
-                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     selectedVariant?._id === variant._id
                       ? 'border-orange-500 bg-orange-50 text-orange-600'
-                      : 'border-gray-300 hover:border-gray-400'
+                      : 'border-gray-300 hover:border-gray-400 text-gray-700'
                   }`}
                 >
-                  {variant.ram} - ${variant.price}
+                  {variant.ram}
                 </button>
               ))}
             </div>
-            {selectedVariant && (
-              <div className="mt-2 text-sm text-gray-600">
-                Stock: {selectedVariant.quantity} units
-              </div>
-            )}
           </div>
 
-          {/* Quantity Selector */}
+          {/* Quantity Selector - Updated to match Figma design */}
           <div>
-            <label className="block text-gray-700 font-medium mb-3">Quantity:</label>
+            <label className="block text-gray-700 font-medium mb-3">Quantity :</label>
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => handleQuantityChange(-1)}
                 disabled={quantity <= 1}
-                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+                className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 text-sm font-medium"
               >
                 -
               </button>
-              <span className="w-12 text-center font-medium">{quantity}</span>
+              <span className="w-12 text-center font-medium text-sm">{quantity}</span>
               <button
                 onClick={() => handleQuantityChange(1)}
                 disabled={quantity >= maxQuantity}
-                className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
+                className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 text-sm font-medium"
               >
                 +
               </button>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-4">
-            <Button
+          {/* Action Buttons - Updated to match Figma styling */}
+          <div className="flex items-center space-x-4">
+            <button
               onClick={() => setShowEditModal(true)}
-              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-full"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors"
             >
               Edit product
-            </Button>
+            </button>
             
-            <Button
+            <button
               onClick={handleBuyNow}
               disabled={!inStock}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-full disabled:opacity-50 transition-all duration-200 transform hover:scale-105"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium disabled:opacity-50 transition-colors"
             >
               Buy it now
-            </Button>
+            </button>
 
-            {/* Wishlist Button */}
+            {/* Wishlist Button - Updated to match Figma */}
             <button
               onClick={handleWishlistToggle}
               className={`p-3 rounded-full border transition-colors ${
@@ -390,7 +369,7 @@ const inStock = maxQuantity > 0;
               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <svg 
-                className="h-6 w-6" 
+                className="h-5 w-5" 
                 fill={isWishlisted ? "currentColor" : "none"}
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -407,7 +386,7 @@ const inStock = maxQuantity > 0;
 
           {/* Product Description */}
           {product.description && (
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-gray-50 rounded-lg p-4 mt-6">
               <h3 className="font-medium text-gray-900 mb-2">Description</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
                 {product.description}
