@@ -139,7 +139,6 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
   return (
     <div className="w-full h-full">
       <div className="p-4">
-        {/* Breadcrumb - Moved from Homepage */}
         <nav className="flex flex-wrap items-center text-sm text-gray-500 mb-4 pb-3 border-b">
           <span className="font-medium">Home</span>
           {selectedCategory && (
@@ -225,7 +224,6 @@ const Sidebar = ({ onCategoryFilter, onSubCategoryFilter, selectedCategory, sele
         </div>
       </div>
 
-      {/* Custom checkbox styles - Updated with grey background and white tick */}
       <style jsx>{`
         .custom-checkbox {
           appearance: none;

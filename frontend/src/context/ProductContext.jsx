@@ -1,4 +1,4 @@
-// src/context/ProductContext.jsx - FIXED VERSION
+// src/context/ProductContext.jsx 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
@@ -34,9 +34,7 @@ export const ProductProvider = ({ children }) => {
   });
 
   // Fetch products based on filters
-// Update the fetchProducts function to handle multiple subcategories
-// In ProductContext.jsx - Update the fetchProducts function
-// In ProductContext.jsx - Update the fetchProducts function
+
 const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
   try {
     const filterParams = { ...filters, ...customFilters };
@@ -127,16 +125,13 @@ const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
     }
   };
 
-  // FIXED: Add new product - no duplicates
   const addProduct = async (productData) => {
     try {
       const response = await productService.createProduct(productData);
       if (response.success) {
-        // Instead of refreshing all products, just add the new one to the current list
-        // This prevents the duplicate issue
+      
         setProducts(prevProducts => [response.data, ...prevProducts]);
         
-        // Update pagination total count
         setPagination(prev => ({
           ...prev,
           total: prev.total + 1,
@@ -164,10 +159,8 @@ const fetchProducts = async (customFilters = {}, isInitialLoad = false) => {
     }
   };
 
-  // FIXED: Add new subcategory - corrected method signature
   const addSubCategory = async (subcategoryData) => {
     try {
-      // The subcategoryData should include the categoryId
       const response = await categoryService.createSubCategory(subcategoryData.category, subcategoryData);
       if (response.success) {
         setSubcategories(prev => [...prev, response.data]);

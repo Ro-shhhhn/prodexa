@@ -22,15 +22,12 @@ class ApiService {
 
       const data = await response.json();
 
-      // FIXED: Don't redirect from API service, let components handle it
       if (response.status === 401) {
-        // Only clear auth data if we're not already on login/signup pages
         const currentPath = window.location.pathname;
         if (currentPath !== '/login' && currentPath !== '/signup') {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          // Don't use window.location.href - let React Router handle navigation
-          // Just throw the error and let the component handle redirect
+          
         }
         throw new Error('Session expired. Please login again.');
       }

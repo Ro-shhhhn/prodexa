@@ -20,11 +20,15 @@ class CategoryService {
     }
   }
 
-  // Create new category
+  // Create new category with better error handling
   async createCategory(categoryData) {
     try {
       return await apiService.post('/categories', categoryData);
     } catch (error) {
+      // Preserve the error structure from backend
+      if (error.response?.data) {
+        throw error;
+      }
       throw new Error(error.message || 'Failed to create category');
     }
   }
@@ -65,11 +69,15 @@ class CategoryService {
     }
   }
 
-  // FIXED: Create new subcategory - now matches backend route
+  // Create new subcategory with better error handling
   async createSubCategory(subCategoryData) {
     try {
       return await apiService.post('/categories/subcategories', subCategoryData);
     } catch (error) {
+      // Preserve the error structure from backend
+      if (error.response?.data) {
+        throw error;
+      }
       throw new Error(error.message || 'Failed to create subcategory');
     }
   }

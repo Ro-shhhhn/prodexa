@@ -44,7 +44,6 @@ const SearchBar = ({
 
   const handleClear = useCallback(() => {
     setSearchTerm('');
-    // Immediately trigger search with empty term
     if (onSearch) {
       onSearch('');
     }

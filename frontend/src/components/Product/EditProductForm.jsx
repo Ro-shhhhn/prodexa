@@ -1,4 +1,4 @@
-// src/components/Product/EditProductForm.jsx - FIXED VERSION
+// src/components/Product/EditProductForm.jsx - UPDATED VERSION
 import React, { useState, useEffect } from 'react';
 import Button from '../common/UI/Button';
 import Input from '../common/UI/Input';
@@ -21,7 +21,6 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // FIXED: Better image state management
   const [imageState, setImageState] = useState({
     existing: product.images || [],
     new: [null, null, null], // Track new files for each position
@@ -89,7 +88,6 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
     }
   };
 
-  // FIXED: Improved image handling
   const handleImageSelect = (index, files) => {
     if (files.length > 0) {
       const file = files[0];
@@ -120,20 +118,7 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
     }
   };
 
-  const removeImage = (index) => {
-    // Clean up preview URL
-    if (imageState.previews[index]) {
-      URL.revokeObjectURL(imageState.previews[index]);
-    }
-    
-    setImageState(prev => ({
-      ...prev,
-      new: prev.new.map((item, i) => i === index ? null : item),
-      previews: prev.previews.map((item, i) => i === index ? null : item)
-    }));
-  };
-
-  // FIXED: Get current image for display (new or existing)
+  // Get current image for display (new or existing)
   const getCurrentImage = (index) => {
     if (imageState.previews[index]) {
       return imageState.previews[index]; // Show new image preview
@@ -144,7 +129,7 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
     return null;
   };
 
-  // FIXED: Check if image slot has any content (new or existing)
+  // Check if image slot has any content (new or existing)
   const hasImageInSlot = (index) => {
     return !!(imageState.previews[index] || imageState.existing[index]);
   };
@@ -190,7 +175,7 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
       }));
       formDataToSend.append('variants', JSON.stringify(processedVariants));
       
-      // FIXED: Only append new images that were actually selected
+      // Only append new images that were actually selected
       const hasNewImages = imageState.new.some(file => file !== null);
       if (hasNewImages) {
         imageState.new.forEach((file) => {
@@ -200,7 +185,7 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
         });
       }
       
-      // FIXED: Always send existing images info for backend to handle properly
+      // Always send existing images info for backend to handle properly
       formDataToSend.append('existingImages', JSON.stringify(imageState.existing));
       
       const response = await productService.updateProduct(product._id, formDataToSend);
@@ -314,7 +299,14 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
                 required
               />
               {formData.variants.length > 1 && (
-               
+                <Button 
+                  type="button" 
+                  variant="danger" 
+                  size="sm" 
+                  onClick={() => removeVariant(index)}
+                >
+                  Remove
+                </Button>
               )}
             </div>
           ))}
@@ -333,7 +325,6 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
         />
       </div>
 
-      {/* FIXED: Improved Image Management Section */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Product Images
@@ -358,20 +349,11 @@ const EditProductForm = ({ product, onSuccess, onCancel }) => {
                     </div>
                   </div>
                   
-                  <div className="flex space-x-1">
-                    <FileUpload onFileSelect={(files) => handleImageSelect(index, files)} accept="image/*">
-                      <div className="flex-1 text-center px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors cursor-pointer">
-                        Replace
-                      </div>
-                    </FileUpload>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="flex-1 text-center px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  <FileUpload onFileSelect={(files) => handleImageSelect(index, files)} accept="image/*">
+                    <div className="w-full text-center px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors cursor-pointer">
+                      Replace
+                    </div>
+                  </FileUpload>
                 </div>
               ) : (
                 <FileUpload onFileSelect={(files) => handleImageSelect(index, files)} accept="image/*">

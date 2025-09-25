@@ -1,4 +1,4 @@
-// backend/models/Product.js - Updated with Optimized Search Indexes
+// backend/models/Product.js
 const mongoose = require('mongoose');
 
 const variantSchema = new mongoose.Schema({
@@ -98,14 +98,13 @@ productSchema.virtual('priceRange').get(function() {
 
 // OPTIMIZED INDEXES FOR PARTIAL SEARCH AND FILTERING
 
-// 1. PRIMARY SEARCH INDEXES - For partial string matching (regex queries)
-productSchema.index({ name: 1 }); // Essential for name-based partial search
-productSchema.index({ description: 1 }); // For description-based partial search
+productSchema.index({ name: 1 }); 
+productSchema.index({ description: 1 }); 
 
 // 2. CORE FILTERING INDEXES
-productSchema.index({ isActive: 1, createdAt: -1 }); // Most common query: active products by date
-productSchema.index({ category: 1, isActive: 1 }); // Filter by category (active products)
-productSchema.index({ subcategory: 1, isActive: 1 }); // Filter by subcategory (active products)
+productSchema.index({ isActive: 1, createdAt: -1 }); 
+productSchema.index({ category: 1, isActive: 1 }); 
+productSchema.index({ subcategory: 1, isActive: 1 });
 
 // 3. COMPOUND INDEXES FOR COMPLEX QUERIES
 productSchema.index({ 

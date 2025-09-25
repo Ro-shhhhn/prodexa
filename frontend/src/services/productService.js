@@ -1,17 +1,14 @@
-// src/services/productService.js - COMPLETE UPDATED VERSION
+// src/services/productService.js
 import apiService from './api.js';
 
 class ProductService {
-  // Get all products with optional filters - FIXED
   async getAllProducts(filters = {}) {
     try {
       const queryParams = new URLSearchParams();
       
-      // Add filters to query parameters
       if (filters.search) queryParams.append('search', filters.search);
       if (filters.category) queryParams.append('category', filters.category);
       
-      // FIXED: Handle multiple subcategories (plural)
       if (filters.subcategories) {
         queryParams.append('subcategories', filters.subcategories);
       }
@@ -25,7 +22,7 @@ class ProductService {
 
       const endpoint = queryParams.toString() ? `/products?${queryParams}` : '/products';
       
-      console.log('Fetching products from:', endpoint); // Debug log
+      console.log('Fetching products from:', endpoint); 
       
       return await apiService.get(endpoint);
     } catch (error) {
@@ -33,7 +30,6 @@ class ProductService {
     }
   }
 
-  // Keep the original getProducts method for backward compatibility
   async getProducts(filters = {}) {
     return this.getAllProducts(filters);
   }
@@ -41,7 +37,6 @@ class ProductService {
   // Get single product by ID
   async getProductById(productId) {
     try {
-      // Validate productId before making the request
       if (!productId || productId === 'undefined' || productId === 'null') {
         throw new Error('Product ID is required and cannot be undefined');
       }
@@ -52,7 +47,6 @@ class ProductService {
     }
   }
 
-  // Create product with images (FormData for Cloudinary upload)
   async createProductWithImages(formData) {
     try {
       const token = localStorage.getItem('token');
@@ -60,7 +54,6 @@ class ProductService {
         method: 'POST',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` }),
-          // Don't set Content-Type for FormData - browser will set it with boundary
         },
         body: formData
       });
@@ -76,22 +69,18 @@ class ProductService {
     }
   }
 
-  // DEPRECATED: Old create product method (kept for backward compatibility)
   async createProduct(productData) {
     try {
-      // If productData is FormData, use the new method
       if (productData instanceof FormData) {
         return this.createProductWithImages(productData);
       }
       
-      // Otherwise use the old JSON method (will fail if images are required)
       return await apiService.post('/products', productData);
     } catch (error) {
       throw new Error(error.message || 'Failed to create product');
     }
   }
 
-  // Update product with images (FormData for new images)
   async updateProduct(productId, formData) {
     try {
       // Validate productId
@@ -104,7 +93,6 @@ class ProductService {
         method: 'PUT',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` }),
-          // Don't set Content-Type for FormData - browser will set it with boundary
         },
         body: formData
       });
@@ -120,7 +108,6 @@ class ProductService {
     }
   }
 
-  // Legacy JSON update method (for backward compatibility when no images involved)
   async updateProductJSON(productId, productData) {
     try {
       // Validate productId
@@ -208,7 +195,6 @@ class ProductService {
     try {
       const queryParams = new URLSearchParams();
       
-      // Handle multiple subcategory IDs
       const subcategoriesString = Array.isArray(subcategoryIds) 
         ? subcategoryIds.join(',') 
         : subcategoryIds;
@@ -231,7 +217,6 @@ class ProductService {
     }
   }
 
-  // Upload product image to Cloudinary (helper method)
   async uploadProductImage(file) {
     try {
       const formData = new FormData();
@@ -257,7 +242,6 @@ class ProductService {
     }
   }
 
-  // Bulk operations (if needed)
   async bulkDeleteProducts(productIds) {
     try {
       if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
@@ -270,7 +254,6 @@ class ProductService {
     }
   }
 
-  // Get product statistics (for dashboard/analytics)
   async getProductStats() {
     try {
       return await apiService.get('/products/stats');

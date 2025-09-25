@@ -1,4 +1,4 @@
-// src/pages/ProductDetails.jsx - Enhanced with Better Error Handling and Wishlist
+// src/pages/ProductDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/common/Layout/Layout';
@@ -34,10 +34,10 @@ const ProductDetails = () => {
 
   // Check wishlist status when product loads
   useEffect(() => {
-    if (product) {
+    if (product && user) {
       setIsWishlisted(isInWishlist(product._id));
     }
-  }, [product, isInWishlist]);
+  }, [product, isInWishlist, user]);
 
   const fetchProduct = async () => {
     try {
@@ -62,6 +62,38 @@ const ProductDetails = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const showToast = (message, type = 'info') => {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-20 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+      type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-orange-500'
+    } text-white`;
+    
+    toast.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        <div>
+          <div class="font-medium">${type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Login Required'}</div>
+          <div class="text-sm opacity-90">${message}</div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      toast.style.transform = 'translateX(100%)';
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 300);
+    }, 3000);
   };
 
   const handleVariantSelect = (variant) => {
@@ -91,20 +123,29 @@ const ProductDetails = () => {
   // Wishlist toggle handler
   const handleWishlistToggle = async () => {
     if (!user) {
-      navigate('/login');
+      showToast('Please login to add items to wishlist');
+      // Navigate to login after showing message
+      setTimeout(() => navigate('/login'), 1000);
       return;
     }
 
     try {
       if (isWishlisted) {
         const success = await removeFromWishlist(product._id);
-        if (success) setIsWishlisted(false);
+        if (success) {
+          setIsWishlisted(false);
+          showToast('Removed from wishlist', 'success');
+        }
       } else {
         const success = await addToWishlist(product);
-        if (success) setIsWishlisted(true);
+        if (success) {
+          setIsWishlisted(true);
+          showToast('Added to wishlist', 'success');
+        }
       }
     } catch (error) {
       console.error('Failed to update wishlist:', error);
+      showToast('Failed to update wishlist. Please try again.', 'error');
     }
   };
 
@@ -267,7 +308,7 @@ const ProductDetails = () => {
 
         {/* Right Side - Product Info */}
         <div className="space-y-6">
-          {/* Product Title - Using dynamic product name */}
+          {/* Product Title */}
           <div>
             <h1 className="text-3xl font-bold text-blue-900 mb-4">
               {product.name || 'HP AMD Ryzen 3'}
@@ -279,7 +320,7 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Availability Section - Updated to match Figma */}
+          {/* Availability Section */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <span className="text-gray-600">Availability:</span>
@@ -291,7 +332,6 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            {/* Updated Hurry Message to match Figma design */}
             {inStock && maxQuantity <= 50 && (
               <div className="text-gray-600 text-sm">
                 Hurry up! only {maxQuantity} product left in stock!
@@ -299,7 +339,7 @@ const ProductDetails = () => {
             )}
           </div>
 
-          {/* RAM Variants - Updated styling to match Figma */}
+          {/* RAM Variants */}
           <div>
             <label className="block text-gray-700 font-medium mb-3">Ram:</label>
             <div className="flex space-x-3">
@@ -319,7 +359,7 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Quantity Selector - Updated to match Figma design */}
+          {/* Quantity Selector */}
           <div>
             <label className="block text-gray-700 font-medium mb-3">Quantity :</label>
             <div className="flex items-center space-x-3">
@@ -341,7 +381,7 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Action Buttons - Updated to match Figma styling */}
+          {/* Action Buttons */}
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setShowEditModal(true)}
@@ -358,19 +398,27 @@ const ProductDetails = () => {
               Buy it now
             </button>
 
-            {/* Wishlist Button - Updated to match Figma */}
+            {/* Wishlist Button */}
             <button
               onClick={handleWishlistToggle}
               className={`p-3 rounded-full border transition-colors ${
-                isWishlisted 
+                user && isWishlisted 
                   ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                  : !user
+                  ? 'bg-gray-100 border-gray-300 text-gray-400 hover:bg-orange-100 hover:text-orange-500'
                   : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
               }`}
-              title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              title={
+                !user 
+                  ? "Login to add to wishlist" 
+                  : isWishlisted 
+                  ? "Remove from wishlist" 
+                  : "Add to wishlist"
+              }
             >
               <svg 
                 className="h-5 w-5" 
-                fill={isWishlisted ? "currentColor" : "none"}
+                fill={user && isWishlisted ? "currentColor" : "none"}
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
               >

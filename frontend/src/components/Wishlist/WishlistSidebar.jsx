@@ -188,7 +188,6 @@ const WishlistSidebar = () => {
           )}
         </div>
 
-        {/* Footer - Optional */}
         {wishlistItems.length > 0 && user && (
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="text-center text-sm text-gray-500">

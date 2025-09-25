@@ -169,7 +169,6 @@ const ProductForm = ({ onSuccess, onCancel }) => {
           if (fileObj) URL.revokeObjectURL(fileObj.preview);
         });
         
-        // Call success callback - FIXED: Just pass the product data
         onSuccess(response.data);
       } else {
         setError(response.message || 'Failed to create product');

@@ -49,7 +49,6 @@ const Home = () => {
     });
   }, [updateFilters]);
 
-  // Updated to handle multiple subcategories
   const handleSubCategoryFilter = useCallback((subCategories) => {
     updateFilters({ subcategories: subCategories });
   }, [updateFilters]);
@@ -92,7 +91,6 @@ const Home = () => {
   const handleCategorySuccess = async (newCategory) => {
     setShowAddCategoryModal(false);
     showSuccess('Category added successfully!');
-    // Optionally refresh categories
     setTimeout(() => {
       fetchProducts();
     }, 500);
@@ -101,7 +99,6 @@ const Home = () => {
   const handleSubCategorySuccess = async (newSubCategory) => {
     setShowAddSubCategoryModal(false);
     showSuccess('Sub category added successfully!');
-    // Optionally refresh subcategories
     setTimeout(() => {
       fetchProducts();
     }, 500);
@@ -159,13 +156,11 @@ const Home = () => {
         </div>
       )}
 
-      {/* Header Section - Removed breadcrumb from here */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {getDisplayTitle()}
           </h1>
-          {/* Breadcrumb moved to Sidebar */}
         </div>
 
         <div className="flex space-x-3">

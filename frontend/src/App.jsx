@@ -1,4 +1,4 @@
-// src/App.jsx - FIXED VERSION
+// src/App.jsx  
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -13,7 +13,6 @@ import NotFound from './pages/NotFound';
 import WishlistModal from './components/Wishlist/WishlistModal';
 import './App.css';
 
-// Create a wrapper component for authenticated app content
 const AuthenticatedApp = () => {
   return (
     <WishlistProvider>

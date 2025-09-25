@@ -62,7 +62,6 @@ const uploadProductImages = (req, res, next) => {
   });
 };
 
-// FIXED: New middleware for updating products (allows 0 to 3 images)
 const uploadProductImagesForUpdate = (req, res, next) => {
   const uploadMultiple = upload.array('images', 3);
   
@@ -74,8 +73,7 @@ const uploadProductImagesForUpdate = (req, res, next) => {
       });
     }
     
-    // For update operation, allow 0 to 3 images
-    // If no new images are uploaded, existing images will be preserved
+    
     if (req.files && req.files.length > 3) {
       return res.status(400).json({
         success: false,

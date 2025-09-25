@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {  // Accept children prop
     return <Navigate to="/login" replace />;
   }
   
-  return children;  // Render children instead of <Outlet />
+  return children;  
 };
 
 export default ProtectedRoute;
